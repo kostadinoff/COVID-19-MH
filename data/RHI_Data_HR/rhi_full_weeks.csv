@@ -1,4 +1,4 @@
-﻿region;year ;month;hospital_beds;COVID_hospitals;Hospitals;COVID_Beds;Intensive_COVID_beds;ID_Beds;Infection_beds;COVID_proportion;Hospitals_involved
+region;year ;month;hospital_beds;COVID_hospitals;Hospitals;COVID_Beds;Intensive_COVID_beds;ID_Beds;Infection_beds;COVID_proportion;Hospitals_involved
 Благоевград;2020.00;март;1815.00;5.00;11.00;50.00;57.00;10.00;69.00;2.75;45.50
 Благоевград;2020.00;април;1815.00;5.00;11.00;94.00;57.00;12.00;69.00;5.18;45.50
 Благоевград;2020.00;май;1815.00;5.00;11.00;128.00;57.00;17.00;69.00;7.05;45.50
