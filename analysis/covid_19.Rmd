@@ -1,0 +1,25 @@
+---
+title: "Анализ на починалите"
+author: "Кеворкян К., Райчева Р.Костадинов К."
+date: "24/03/2022"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(easystats)
+library(tayloRswift)
+library(readr)
+```
+
+```{r}
+dth <- read_csv("~/GitHub/COVID-19-MH/data/COVID_MH_data/deaths.csv", 
+                col_types = cols(add_day = col_date(format = "%Y-%m-%d"),  
+                                 death_day = col_date(format = "%Y-%m-%d")))
+```
+
