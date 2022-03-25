@@ -21,5 +21,8 @@ library(readr)
 dth <- read_csv("~/GitHub/COVID-19-MH/data/COVID_MH_data/deaths.csv",
                 col_types = cols(add_day = col_date(format = "%Y-%m-%d"),  
                                  death_day = col_date(format = "%Y-%m-%d")))
+dth = as_tibble(dth) %>% 
+  mutate(across(where(is.character), as.factor)) %>% 
+  rename(comorb=`Придружаващи заболявания`)
 ```
 
