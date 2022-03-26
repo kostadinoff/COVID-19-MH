@@ -37,5 +37,3 @@ tsegen double death_vaccinated_14 = rowmean(L(0/13).death_vaccinated )
 tsegen double death_non_vax_14 = rowmean(L(0/13).death_non_vax) 
 
 
-*импорт на данните за починалите
-import delimited "https://raw.githubusercontent.com/kostadinoff/COVID-19-MH/master/data/COVID_MH_data/deaths.csv"
