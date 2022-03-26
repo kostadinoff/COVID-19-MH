@@ -1,4 +1,4 @@
-region,region_id,"year ",doctors,intensive,infectionist,epidemiologists,GP,pulmologist,"nurses "
+region,region_id,year ,doctors,intensive,infectionist,epidemiologists,GP,pulmologist,nurses 
 Благоевград,1,2020,463,18,8,5,180,10,751
 Благоевград,1,2021,419,17,7,5,174,9,698
 Бургас,2,2020,1367,77,10,3,218,20,2166
@@ -22,7 +22,7 @@ region,region_id,"year ",doctors,intensive,infectionist,epidemiologists,GP,pulmo
 Ловеч,11,2020,199,15,4,0,66,13,260
 Ловеч,11,2021,202,15,4,0,63,12,259
 Монтана,12,2021,202,19,4,0,78,10,563
-"Монтана ",12,2020,209,19,5,0,83,9,562
+Монтана ,12,2020,209,19,5,0,83,9,562
 Пазарджик,13,2020,443,36,5,1,156,12,657
 Пазарджик,13,2021,451,41,7,1,151,11,619
 Перник,14,2020,150,9,1,0,82,4,238
