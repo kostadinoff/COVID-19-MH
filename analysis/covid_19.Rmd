@@ -5,7 +5,6 @@ date: "24/03/2022"
 output: html_document
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -15,14 +14,14 @@ library(tidyverse)
 library(easystats)
 library(tayloRswift)
 library(readr)
+Sys.setlocale(locale = "Bulgarian")
 ```
 
 ```{r}
-dth <- read_csv("~/GitHub/COVID-19-MH/data/COVID_MH_data/deaths.csv",
-                col_types = cols(add_day = col_date(format = "%Y-%m-%d"),  
-                                 death_day = col_date(format = "%Y-%m-%d")))
+dth <- read_csv("C:/Users/Latitude E7270/Dropbox/Kostadin/COVID-19-MH/data/COVID_MH_data/deaths.csv", 
+     col_types = cols(add_day = col_date(format = "%Y-%m-%d"), 
+         death_day = col_date(format = "%Y-%m-%d")), 
+     trim_ws = FALSE)
 dth = as_tibble(dth) %>% 
-  mutate(across(where(is.character), as.factor)) %>% 
-  rename(comorb=`Придружаващи заболявания`)
+  mutate(across(where(is.character), as.factor))
 ```
-
