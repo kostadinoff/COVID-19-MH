@@ -14,14 +14,83 @@ library(tidyverse)
 library(easystats)
 library(tayloRswift)
 library(readr)
+library(flextable)
+library(janitor)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
 ```{r}
-dth <- read_csv("C:/Users/Latitude E7270/Dropbox/Kostadin/COVID-19-MH/data/COVID_MH_data/deaths.csv", 
-     col_types = cols(add_day = col_date(format = "%Y-%m-%d"), 
-         death_day = col_date(format = "%Y-%m-%d")), 
-     trim_ws = FALSE)
-dth = as_tibble(dth) %>% 
-  mutate(across(where(is.character), as.factor))
+cov = read_csv("~/GitHub/COVID-19-MH/data/COVID_MH_data/covid_full.csv", 
+    col_types = cols(exam_date = col_date(format = "%d.%m.%Y"), 
+         lastvac_date = col_date(format = "%d.%m.%Y"), 
+         start_hospis = col_date(format = "%d.%m.%Y"), 
+         end_hospis = col_date(format = "%d.%m.%Y")))
+
+cov = as_tibble(cov) 
 ```
+
+#  Обща характеристика на всички инфектирани в страната, независимо от изхода на инфекцията:
+## общ брой 
+
+В представената база данни са налични 1 126 945 записа на официално потвърдени и регистрирани случаи с коронавирусна инфекция. 
+
+##  медиана на възрастта на цялата извадка. 
+
+```{r}
+age = cov %>% 
+      dplyr::summarise( 
+                count = n(),
+                median = median(age, na.rm = TRUE),
+                IQR = IQR(age, na.rm = TRUE),
+                mean = mean(age, na.rm = TRUE)) %>% 
+flextable()
+age
+```
+
+## - разпределение по пол (n, %)
+
+```{r}
+gender = cov %>% 
+      tabyl(gender) %>%       # tabulate counts and proportions by age category
+      adorn_pct_formatting() %>% 
+      flextable()
+gender
+```
+
+## по възрастови групи (n, %)
+
+
+```{r}
+
+cov$age = as.numeric(cov$age)
+
+cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
+                       c("0-14","15-24","25-34","35-44","45-54","55-64",
+                         "65-74","75-84","85-94","> 95"), include.lowest=TRUE)
+
+age_groups =  cov %>% 
+              tabyl(age_group) %>%       # tabulate counts and proportions by age category
+              adorn_pct_formatting() %>% 
+              flextable()
+age_groups
+```
+
+# по възраст и пол 
+
+```{r}
+age_gender = cov %>%                          # case linelist
+  tabyl(age_group, gender) %>%                # cross-tabulate counts
+  adorn_totals(where = "row") %>%             # add a total row
+  adorn_percentages(denominator = "col") %>%  # convert to proportions
+  adorn_pct_formatting() %>%                  # convert to percents
+  adorn_ns(position = "front") %>%            # display as: "count (percent)"
+  flextable()
+  
+```
+
+# по области (n, %)
+# разпределение спрямо място на изолация/лечение (на домашно лечение,  в ковид отделение, в интензивно отдление)
+# ваксинационен статус в групата на оставените на домашно лечение,  в ковид отделение, в интензивно отдление
+# изход (оздравели  или починали с/от ковид)   в болница(ковид отделенеи или интензивно отделение) или в дома 
+
+
