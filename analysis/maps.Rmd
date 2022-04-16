@@ -26,18 +26,17 @@ Sys.setlocale(locale = "Bulgarian")
 ```{r}
 # импорт на шейп файла
 my_spdf <- readOGR( 
-  dsn= paste0(getwd(),"./bulgarian_maps") , 
+  dsn= "analysis/bulgarian_maps/Bulgaria_regions_NUTS_3.shp",
   layer="Bulgaria_regions_NUTS_3",
   verbose=FALSE,
   use_iconv = F,
   encoding = "UTF-8")
   spdf_fortified <- tidy(my_spdf)
-
 ```
 
 ```{r}
 bulgaria <- st_read(
-  dsn= paste0(getwd(),"./bulgarian_maps/Bulgaria_regions_NUTS_3.shp"))
+  dsn= "analysis/bulgarian_maps/Bulgaria_regions_NUTS_3.shp")
 tm_shape(bulgaria) + tm_polygons("Pop_2019")
 
 ggplot(bulgaria) + 
