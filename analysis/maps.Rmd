@@ -1,0 +1,107 @@
+---
+title: "Карти"
+author: "Кеворкян К., Райчева Р.Костадинов К."
+date: "24/03/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+# Необходими пакети
+library(tidyverse)
+library(rgdal)
+library(broom)
+library(ggplot2)
+library(dplyr)
+library(tmap)
+library(sf)
+Sys.setlocale(locale = "Bulgarian")
+```
+
+```{r}
+# импорт на шейп файла
+my_spdf <- readOGR( 
+  dsn= paste0(getwd(),"./bulgarian_maps") , 
+  layer="Bulgaria_regions_NUTS_3",
+  verbose=FALSE,
+  use_iconv = F,
+  encoding = "UTF-8")
+  spdf_fortified <- tidy(my_spdf)
+
+```
+
+```{r}
+bulgaria <- st_read(
+  dsn= paste0(getwd(),"./bulgarian_maps/Bulgaria_regions_NUTS_3.shp"))
+tm_shape(bulgaria) + tm_polygons("Pop_2019")
+
+ggplot(bulgaria) + 
+  geom_sf() + 
+  coord_sf()
+```
+
+
+```{r}
+bulgarian_1 <- ggplot(data = bulgaria_t) +
+  geom_sf(aes(fill = Pop_2019)) +
+  ggtitle(label = "The Honey crisis of 2008", subtitle = "Price per lb")
+
+```
+
+
+```{r}
+# създадване на имена
+temp_en <- data.frame(my_spdf@data$NAME_LATN)
+names(temp_en) <- c("region_en")
+
+temp_bg <- data.frame(my_spdf@data$NUTS_NAME)
+names(temp_bg) <- c("region_bg")
+
+```
+
+
+```{r}
+# Create and append "id"
+temp_en$id <- seq(0,nrow(temp_en)-1)
+spdf_fortified <- plyr::join(spdf_fortified, temp_en, by="id")
+
+temp_bg$id <- seq(0,nrow(temp_bg)-1)
+spdf_fortified <- plyr::join(spdf_fortified, temp_bg, by="id")
+
+```
+
+```{r}
+# карти
+map <- ggplot() + geom_polygon(data = spdf_fortified ,
+                                      aes(x = long, y = lat, 
+                                               group = group), 
+                               colour = "black", fill = NA)
+```
+
+
+```{r}
+cnames <- aggregate(cbind(long, lat) ~ region_bg, 
+data=spdf_fortified, FUN=mean)
+map + geom_text(data = cnames, aes(x = long, y = lat, 
+label = region_bg), size = 4) + theme_void()
+
+```
+
+
+
+```{r}
+ggplot() +
+  geom_polygon(data = spdf_fortified, 
+               aes( x = long, y = lat, group = group),
+               fill="#69b3a2", color="white") +
+  theme_void() 
+```
+
+
+
+
