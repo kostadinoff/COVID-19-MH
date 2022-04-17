@@ -53,7 +53,8 @@ age = cov %>%
                 count = n(),
                 median = median(age, na.rm = TRUE),
                 IQR = IQR(age, na.rm = TRUE),
-                mean = mean(age, na.rm = TRUE)) %>% 
+                mean = mean(age, na.rm = TRUE),
+                sd = sd(age, na.rm = TRUE)) %>% 
 flextable()
 age
 ```
@@ -65,7 +66,8 @@ age_dth = dth %>%
                 count = n(),
                 median = median(age, na.rm = TRUE),
                 IQR = IQR(age, na.rm = TRUE),
-                mean = mean(age, na.rm = TRUE)) %>% 
+                mean = mean(age, na.rm = TRUE),
+                sd = sd(age, na.rm = TRUE)) %>% 
 flextable()
 age_dth
 ```
@@ -130,7 +132,7 @@ age_gender = cov %>%                          # case linelist
   adorn_pct_formatting() %>%                  # convert to percents
   adorn_ns(position = "front") %>%            # display as: "count (percent)"
   flextable()
-  
+  age_gender
 ```
 
 ```{r}
@@ -333,7 +335,7 @@ vax_status_2
 ```
 
 
-# изход (оздравели  или починали с/от ковид)  в болница (ковид отделенеи или интензивно отделение) или в дома  todo 
+# изход (оздравели или починали с/от ковид)  в болница (ковид отделенеи или интензивно отделение) или в дома  todo 
 
 ```{r}
 exit_1= cov %>% 
@@ -377,4 +379,3 @@ exit_vax= cov %>%
        flextable()
 exit_vax
 ```
-
