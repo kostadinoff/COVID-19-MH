@@ -292,7 +292,7 @@ ggplot()+  # default x-axis is age in years;
     plot.caption = element_text(hjust=0, size=11, face = "italic"))
 ```
 
-# разпределение спрямо място на изолация/лечение (на домашно лечение,  в ковид отделение, в интензивно отдление) : todo
+# разпределение спрямо място на изолация/лечение (на домашно лечение,  в ковид отделение, в интензивно отдление) : 
 
 ```{r}
 place = cov %>% 
@@ -304,9 +304,77 @@ place
 ```
 
 
-# ваксинационен статус в групата на оставените на домашно лечение,  в ковид отделение, в интензивно отдление: todo
+# ваксинационен статус в групата на оставените на домашно лечение,  в ковид отделение, в интензивно отдление: 
+
+```{r}
+vax_status_1 = cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
+       tabyl( hospital_treat,vax_status) %>%                  # cross-tabulate counts
+       adorn_totals(where = "row") %>%             # add a total row
+       adorn_percentages(denominator = "col") %>%  # convert to proportions
+       adorn_pct_formatting() %>%                  # convert to percents
+       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       flextable()
+vax_status_1
+```
+
+```{r}
+vax_status_2 = cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
+       tabyl(vax_status,hospital_treat) %>%                  # cross-tabulate counts
+       adorn_totals(where = "row") %>%             # add a total row
+       adorn_percentages(denominator = "col") %>%  # convert to proportions
+       adorn_pct_formatting() %>%                  # convert to percents
+       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       flextable()
+vax_status_2
+```
 
 
-# изход (оздравели  или починали с/от ковид)   в болница(ковид отделенеи или интензивно отделение) или в дома  todo 
+# изход (оздравели  или починали с/от ковид)  в болница (ковид отделенеи или интензивно отделение) или в дома  todo 
 
+```{r}
+exit_1= cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
+      mutate(death = if_else(is.na(outcome_covid), "Recovered", "Death")) %>% 
+       tabyl( hospital_treat,death) %>%                  # cross-tabulate counts
+       adorn_totals(where = "row") %>%             # add a total row
+       adorn_percentages(denominator = "col") %>%  # convert to proportions
+       adorn_pct_formatting() %>%                  # convert to percents
+       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       flextable()
+exit_1
+```
+
+
+```{r}
+exit_2= cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
+      mutate(death = if_else(is.na(outcome_covid), "Recovered", "Death")) %>% 
+       tabyl(death,hospital_treat) %>%                  # cross-tabulate counts
+       adorn_totals(where = "row") %>%             # add a total row
+       adorn_percentages(denominator = "col") %>%  # convert to proportions
+       adorn_pct_formatting() %>%                  # convert to percents
+       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       flextable()
+exit_2
+```
+
+```{r}
+exit_vax= cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
+      mutate(death = if_else(is.na(outcome_covid), "Recovered", "Death")) %>% 
+       tabyl(vax_status,death) %>%                  # cross-tabulate counts
+       adorn_totals(where = "row") %>%             # add a total row
+       adorn_percentages(denominator = "col") %>%  # convert to proportions
+       adorn_pct_formatting() %>%                  # convert to percents
+       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       flextable()
+exit_vax
+```
 
