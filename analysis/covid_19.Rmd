@@ -294,6 +294,15 @@ ggplot()+  # default x-axis is age in years;
 
 # разпределение спрямо място на изолация/лечение (на домашно лечение,  в ковид отделение, в интензивно отдление) : todo
 
+```{r}
+place = cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      tabyl(hospital_treat) %>%       # tabulate counts and proportions by age category
+      adorn_pct_formatting() %>% 
+      flextable()
+place
+```
+
 
 # ваксинационен статус в групата на оставените на домашно лечение,  в ковид отделение, в интензивно отдление: todo
 
