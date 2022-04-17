@@ -1,5 +1,5 @@
 ---
-title: "Анализ на починалите"
+title: "Анализ на регистрираните COVID-19 случаи"
 author: "Кеворкян К., Райчева Р.Костадинов К."
 date: "24/03/2022"
 output:
@@ -11,73 +11,64 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r pakeges, include=FALSE}
 library(tidyverse)
 library(easystats)
 library(tayloRswift)
 library(readr)
-library(flextable)
+library(officer)
 library(janitor)
+library(flextable)
 library(apyramid)
+library(rstatix)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
-```{r}
+```{r read_data, include=FALSE}
 cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv", 
     col_types = cols(exam_date = col_date(format = "%d.%m.%Y"), 
          lastvac_date = col_date(format = "%d.%m.%Y"), 
          start_hospis = col_date(format = "%d.%m.%Y"), 
          end_hospis = col_date(format = "%d.%m.%Y")))
-
 cov = as_tibble(cov)
-```
 
-
-```{r}
-dth <- read_csv("C:\\\\Users\\PC\\Desktop\\deaths.csv", col_types = cols(add_day = col_date(format = "%Y-%m-%d"), 
+dth <- read_csv("https://raw.githubusercontent.com/kostadinoff/COVID-19-MH/master/data/COVID_MH_data/deaths.csv", col_types = cols(add_day = col_date(format = "%Y-%m-%d"), 
     death_day = col_date(format = "%Y-%m-%d")))
 dth = as_tibble(dth)
-
 ```
 
-#  Обща характеристика на всички инфектирани в страната, независимо от изхода на инфекцията:
-## общ брой 
+# Описателен анализ (дискриптивна статистика)
+## Разпределние по възраст:
+В предоставения масив от данни са са налични 1 126 945 записа на официално потвърдени и регистрирани случаи с коронавирусна инфекция. Средната възраст на анализираните е 47,92 год. (SD = 19,29). Величината е нормално разпределена. Медианата на възрастта сред включените пациенти е 48 год (IQR = 29). Коефициентът на вариация на възрастта в предоставените данни е 40,26%. 
 
-В представената база данни са налични 1 126 945 записа на официално потвърдени и регистрирани случаи с коронавирусна инфекция. 
+```{r Възраст_при_инфектираните, echo=FALSE}
 
-##  медиана на възрастта на цялата извадка. 
-
-```{r}
 age = cov %>% 
-      dplyr::summarise( 
-                count = n(),
-                median = median(age, na.rm = TRUE),
-                IQR = IQR(age, na.rm = TRUE),
-                mean = mean(age, na.rm = TRUE),
-                sd = sd(age, na.rm = TRUE)) %>% 
-flextable()
-age
+      get_summary_stats(
+      age,  # columns to calculate for
+      type = "common") %>% 
+      flextable()
+age  
+
 ```
+При починалите пациенти с установена коронавирусна инфекция (n = 36 192) средната възраст е 71,52 г. (SD = 11,58), като и сред тази група величината е нормално разпределена. Медианата на възрастта е 73г. (IQR = 15). В тази подгрупа коефициентът на вариация е 16%, което определя вариабилността на възрастта в групата с 24,26 процентни пункта по-малко спрямо всички инфектирани. 
 
-
-```{r}
+```{r Възраст_при_починалите, echo=FALSE}
 age_dth = dth %>% 
-      dplyr::summarise( 
-                count = n(),
-                median = median(age, na.rm = TRUE),
-                IQR = IQR(age, na.rm = TRUE),
-                mean = mean(age, na.rm = TRUE),
-                sd = sd(age, na.rm = TRUE)) %>% 
-flextable()
+          get_summary_stats(
+          age,  # columns to calculate for
+          type = "common") %>% 
+          flextable()
 age_dth
 ```
 
-## - разпределение по пол (n, %)
+## Разпределние по пол:
 
+
+![](`r url`)
 ```{r}
 gender = cov %>% 
-      tabyl(gender) %>%       # tabulate counts and proportions by age category
-      adorn_pct_formatting() %>% 
+      freq_table(gender) %>% 
       flextable()
 gender
 ```
