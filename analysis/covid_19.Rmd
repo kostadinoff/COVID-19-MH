@@ -38,10 +38,12 @@ dth = as_tibble(dth)
 ```
 
 # Описателен анализ (дискриптивна статистика)
-## Разпределние по възраст:
-В предоставения масив от данни са са налични 1 126 945 записа на официално потвърдени и регистрирани случаи с коронавирусна инфекция. Средната възраст на анализираните е 47,92 год. (SD = 19,29). Величината е нормално разпределена. Медианата на възрастта сред включените пациенти е 48 год (IQR = 29). Коефициентът на вариация на възрастта в предоставените данни е 40,26%. 
 
-```{r Възраст_при_инфектираните, echo=FALSE}
+## Разпределние по възраст:
+
+В предоставения масив от данни са са налични 1 126 945 записа на официално потвърдени и регистрирани случаи с коронавирусна инфекция. Средната възраст на анализираните е 47,92 год. (SD = 19,29). Величината е нормално разпределена. Медианата на възрастта сред включените пациенти е 48 год (IQR = 29). Коефициентът на вариация на възрастта в предоставените данни е 40,26%.
+
+```{r age_infected, echo=FALSE}
 
 age = cov %>% 
       get_summary_stats(
@@ -51,9 +53,10 @@ age = cov %>%
 age  
 
 ```
-При починалите пациенти с установена коронавирусна инфекция (n = 36 192) средната възраст е 71,52 г. (SD = 11,58), като и сред тази група величината е нормално разпределена. Медианата на възрастта е 73г. (IQR = 15). В тази подгрупа коефициентът на вариация е 16%, което определя вариабилността на възрастта в групата с 24,26 процентни пункта по-малко спрямо всички инфектирани. 
 
-```{r Възраст_при_починалите, echo=FALSE}
+При починалите пациенти с установена коронавирусна инфекция (n = 36 192) средната възраст е 71,52 г. (SD = 11,58), като и сред тази група величината е нормално разпределена. Медианата на възрастта е 73г. (IQR = 15). В тази подгрупа коефициентът на вариация е 16%, което определя вариабилността на възрастта в групата с 24,26 процентни пункта по-малко спрямо всички инфектирани.
+
+```{r age_death, echo=FALSE}
 age_dth = dth %>% 
           get_summary_stats(
           age,  # columns to calculate for
@@ -64,27 +67,31 @@ age_dth
 
 ## Разпределние по пол:
 
+![Разпределение по пол- инфектирани](images/gender_ditro-01.png)
 
-![](`r url`)
-```{r}
+По отношение на половото разпределние - сред инфектираните преобладават жени (n = 605 835, 53,8%), като половото съотношение мъже:жени е 0,86.
+
+```{r gender_infected, echo=FALSE}
 gender = cov %>% 
       freq_table(gender) %>% 
       flextable()
 gender
 ```
 
-```{r}
+В подгрупата на починали пациенти половото съотношение е в полза на мъжкия пол 1,24 като починалите мъже представляват 55,2 % от групата на починалите.
+
+```{r gender_death, echo=FALSE}
 gender_dth = dth %>% 
-      tabyl(sex) %>%       # tabulate counts and proportions by age category
-      adorn_pct_formatting() %>% 
+      freq_table(sex) %>% 
       flextable()
 gender_dth
 ```
 
-## по възрастови групи (n, %)
+## Разпределние по възрастови групи:
 
+По възрастови групи, в най-голяма степен са представени инфектираните в диапазона 45-54 г. (18,3%), което отговаря напълно и на разпределнието на населението в Р.България (НСИ).
 
-```{r}
+```{r age_groups_inf, echo=FALSE}
 cov$age = as.numeric(cov$age)
 
 cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
@@ -92,13 +99,14 @@ cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf),
                          "65-74","75-84","85-94","> 95"), include.lowest=TRUE)
 
 age_groups =  cov %>% 
-              tabyl(age_group) %>%       # tabulate counts and proportions by age category
-              adorn_pct_formatting() %>% 
-              flextable()
+              freq_table(age_group) %>% 
+      flextable()
 age_groups
 ```
 
-```{r}
+Сред починалите, в най-голяма степен е представена възрастовата група 65-74г. (33,3%).
+
+```{r age_groups_death, echo=FALSE}
 dth$age = as.numeric(dth$age)
 
 dth["age_group"] = cut(dth$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
@@ -106,14 +114,42 @@ dth["age_group"] = cut(dth$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf),
                          "65-74","75-84","85-94","> 95"), include.lowest=TRUE)
 
 age_groups_dth =  dth %>% 
-              tabyl(age_group) %>%       # tabulate counts and proportions by age category
-              adorn_pct_formatting() %>% 
+              freq_table(age_group) %>% 
               flextable()
 age_groups_dth
 ```
 
+Интерест представлява и съотношението на починали спрямо инфектирани във всяка от възрастовите групи. Изислено е на базата на починали върху заразени \* 100. Наблюдава се тренд в съотношението с нарастване на възрастта, като най-виски приръсти в това съотношение се наблюдават във възрастовите групи над 65 години.
 
-# по възраст и пол 
+```{r group_ratio, echo=FALSE}
+
+age_groups_all =  cov %>% 
+              freq_table(age_group) %>% 
+              mutate(death = "no") %>% 
+              mutate(n_all=n) %>% 
+              select(age_group, n_all)
+age_groups_death =  dth %>% 
+              freq_table(age_group) %>% 
+              mutate(death = "yes") %>% 
+              mutate(n_death=n) %>% 
+              select(age_group, n_death)
+             
+
+age_summ = age_groups_all %>% 
+              inner_join(age_groups_death) %>% 
+               mutate(ratio = (n_death/n_all)*100) %>% 
+               mutate(diff = ratio-lag(ratio)) %>% 
+               select(age_group,ratio,diff) %>% 
+               flextable()
+
+
+age_summ
+```
+
+## Двумерно разпределние - по възраст и пол:
+
+При двумерно разпределение по възраст и пол сред инфектираните се установява по-висок относителен дял на инфектираните мъже в диапазона 35-44 год., докато при женсия пол най-представена е групата на инфектирани в диапазона 45-54г. 
+
 
 ```{r}
 age_gender = cov %>%                          # case linelist
@@ -126,6 +162,7 @@ age_gender = cov %>%                          # case linelist
   age_gender
 ```
 
+В групата на починалите има аналогична тенденция с изместване на 2 декади в смъртността. При женския под най-висок относителен дял на починали са наблюдават в диапазона 75-84 (34,6%), докато при мъжете с най-висок относителен дял са тези починали на възраст в диапозна декада по-рано 65-74 (33,9%)
 ```{r}
 age_gender_dth = dth %>%                          # case linelist
   tabyl(age_group, sex) %>%                # cross-tabulate counts
@@ -137,17 +174,15 @@ age_gender_dth = dth %>%                          # case linelist
 age_gender_dth
 ```
 
-
-
-```{r}
+```{r echo=FALSE}
 piramid = apyramid::age_pyramid(data = cov,
                       age_group = "age_group",
                       split_by = "gender",
                       proportional = TRUE)
-piramid
+piramid = piramid 
 ```
 
-```{r}
+```{r echo=FALSE}
 piramid_dth = apyramid::age_pyramid(data = dth,
                       age_group = "age_group",
                       split_by = "sex",
@@ -155,32 +190,13 @@ piramid_dth = apyramid::age_pyramid(data = dth,
 piramid_dth
 ```
 
-```{r}
+```{r include=FALSE}
 vac_piramid=apyramid::age_pyramid(data = cov,
                       age_group = "age_group",
                       split_by = "is_f_vac")  
 ```
 
-
-```{r}
-province = cov %>% 
-      tabyl(province) %>%       # tabulate counts and proportions by age category
-      adorn_pct_formatting() %>% 
-      flextable()
-province
-```
-
-
-```{r}
-province_dth = dth %>% 
-      tabyl(nuts2) %>%       # tabulate counts and proportions by age category
-      adorn_pct_formatting() %>% 
-      flextable()
-province_dth
-```
-
-
-```{r}
+```{r include=FALSE}
 pop_data <- cov %>% 
     group_by(gender, age_group) %>% 
     summarise(counts=n()) %>% 
@@ -204,7 +220,7 @@ case_data <- dth %>%
   rename(gender = sex)
 ```
 
-```{r}
+```{r include=FALSE}
 # combine case and population data (same column names, age_cat values, and gender values)
 pyramid_data <- bind_rows("cases" = case_data, "population" = pop_data, .id = "data_source")
 # Define extent of percent axis, used for plot limits
@@ -212,15 +228,15 @@ max_per <- max(pyramid_data$percent, na.rm=T)
 min_per <- min(pyramid_data$percent, na.rm=T)
 ```
 
-```{r}
+```{r include=FALSE}
 age_levels <- c("0-14","15-24","25-34","35-44","45-54","55-64",
                          "65-74","75-84","85-94","> 95")
 ```
 
-```{r}
+```{r echo=FALSE}
 # begin ggplot
 ##############
-ggplot()+  # default x-axis is age in years;
+bi_plot = ggplot()+  # default x-axis is age in years;
 
   # population data graph
   geom_col(
@@ -282,10 +298,28 @@ ggplot()+  # default x-axis is age in years;
     panel.background = element_blank(),
     axis.line = element_line(colour = "black"),
     plot.title = element_text(hjust = 0), 
-    plot.caption = element_text(hjust=0, size=11, face = "italic"))
+    plot.caption = element_text(hjust=0, size=12, face = "italic"))
+bi_plot
 ```
 
-# разпределение спрямо място на изолация/лечение (на домашно лечение,  в ковид отделение, в интензивно отдление) : 
+
+```{r province_inf}
+province = cov %>% 
+      tabyl(province) %>%       # tabulate counts and proportions by age category
+      adorn_pct_formatting() %>% 
+      flextable()
+province
+```
+
+```{r province_dth}
+province_dth = dth %>% 
+      tabyl(nuts2) %>%       # tabulate counts and proportions by age category
+      adorn_pct_formatting() %>% 
+      flextable()
+province_dth
+```
+
+# разпределение спрямо място на изолация/лечение (на домашно лечение, в ковид отделение, в интензивно отдление) :
 
 ```{r}
 place = cov %>% 
@@ -296,8 +330,7 @@ place = cov %>%
 place
 ```
 
-
-# ваксинационен статус в групата на оставените на домашно лечение,  в ковид отделение, в интензивно отдление: 
+# ваксинационен статус в групата на оставените на домашно лечение, в ковид отделение, в интензивно отдление:
 
 ```{r}
 vax_status_1 = cov %>% 
@@ -325,8 +358,7 @@ vax_status_2 = cov %>%
 vax_status_2
 ```
 
-
-# изход (оздравели или починали с/от ковид)  в болница (ковид отделенеи или интензивно отделение) или в дома  todo 
+# изход (оздравели или починали с/от ковид) в болница (ковид отделенеи или интензивно отделение) или в дома todo
 
 ```{r}
 exit_1= cov %>% 
@@ -341,7 +373,6 @@ exit_1= cov %>%
        flextable()
 exit_1
 ```
-
 
 ```{r}
 exit_2= cov %>% 
