@@ -25,3 +25,5 @@ merge 1:1 NUTS_NAME using "C:\Users\Kostadin\Documents\bulgaria_regions_NUTS_3\r
 
 *плотваме 
 spmap covid_proportion using bulgaria_shp, id(_ID) cln(11) fcolor(Heat)
+
+
