@@ -2,7 +2,9 @@
 title: "Анализ на починалите"
 author: "Кеворкян К., Райчева Р.Костадинов К."
 date: "24/03/2022"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -16,17 +18,26 @@ library(tayloRswift)
 library(readr)
 library(flextable)
 library(janitor)
+library(apyramid)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
 ```{r}
-cov = read_csv("~/GitHub/COVID-19-MH/data/COVID_MH_data/covid_full.csv", 
+cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv", 
     col_types = cols(exam_date = col_date(format = "%d.%m.%Y"), 
          lastvac_date = col_date(format = "%d.%m.%Y"), 
          start_hospis = col_date(format = "%d.%m.%Y"), 
          end_hospis = col_date(format = "%d.%m.%Y")))
 
-cov = as_tibble(cov) 
+cov = as_tibble(cov)
+```
+
+
+```{r}
+dth <- read_csv("C:\\\\Users\\PC\\Desktop\\deaths.csv", col_types = cols(add_day = col_date(format = "%Y-%m-%d"), 
+    death_day = col_date(format = "%Y-%m-%d")))
+dth = as_tibble(dth)
+
 ```
 
 #  Обща характеристика на всички инфектирани в страната, независимо от изхода на инфекцията:
@@ -47,6 +58,18 @@ flextable()
 age
 ```
 
+
+```{r}
+age_dth = dth %>% 
+      dplyr::summarise( 
+                count = n(),
+                median = median(age, na.rm = TRUE),
+                IQR = IQR(age, na.rm = TRUE),
+                mean = mean(age, na.rm = TRUE)) %>% 
+flextable()
+age_dth
+```
+
 ## - разпределение по пол (n, %)
 
 ```{r}
@@ -57,11 +80,18 @@ gender = cov %>%
 gender
 ```
 
+```{r}
+gender_dth = dth %>% 
+      tabyl(sex) %>%       # tabulate counts and proportions by age category
+      adorn_pct_formatting() %>% 
+      flextable()
+gender_dth
+```
+
 ## по възрастови групи (n, %)
 
 
 ```{r}
-
 cov$age = as.numeric(cov$age)
 
 cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
@@ -74,6 +104,21 @@ age_groups =  cov %>%
               flextable()
 age_groups
 ```
+
+```{r}
+dth$age = as.numeric(dth$age)
+
+dth["age_group"] = cut(dth$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
+                       c("0-14","15-24","25-34","35-44","45-54","55-64",
+                         "65-74","75-84","85-94","> 95"), include.lowest=TRUE)
+
+age_groups_dth =  dth %>% 
+              tabyl(age_group) %>%       # tabulate counts and proportions by age category
+              adorn_pct_formatting() %>% 
+              flextable()
+age_groups_dth
+```
+
 
 # по възраст и пол 
 
@@ -88,9 +133,171 @@ age_gender = cov %>%                          # case linelist
   
 ```
 
-# по области (n, %)
-# разпределение спрямо място на изолация/лечение (на домашно лечение,  в ковид отделение, в интензивно отдление)
-# ваксинационен статус в групата на оставените на домашно лечение,  в ковид отделение, в интензивно отдление
-# изход (оздравели  или починали с/от ковид)   в болница(ковид отделенеи или интензивно отделение) или в дома 
+```{r}
+age_gender_dth = dth %>%                          # case linelist
+  tabyl(age_group, sex) %>%                # cross-tabulate counts
+  adorn_totals(where = "row") %>%             # add a total row
+  adorn_percentages(denominator = "col") %>%  # convert to proportions
+  adorn_pct_formatting() %>%                  # convert to percents
+  adorn_ns(position = "front") %>%            # display as: "count (percent)"
+  flextable()
+age_gender_dth
+```
+
+
+
+```{r}
+piramid = apyramid::age_pyramid(data = cov,
+                      age_group = "age_group",
+                      split_by = "gender",
+                      proportional = TRUE)
+piramid
+```
+
+```{r}
+piramid_dth = apyramid::age_pyramid(data = dth,
+                      age_group = "age_group",
+                      split_by = "sex",
+                      proportional = TRUE)
+piramid_dth
+```
+
+```{r}
+vac_piramid=apyramid::age_pyramid(data = cov,
+                      age_group = "age_group",
+                      split_by = "is_f_vac")  
+```
+
+
+```{r}
+province = cov %>% 
+      tabyl(province) %>%       # tabulate counts and proportions by age category
+      adorn_pct_formatting() %>% 
+      flextable()
+province
+```
+
+
+```{r}
+province_dth = dth %>% 
+      tabyl(nuts2) %>%       # tabulate counts and proportions by age category
+      adorn_pct_formatting() %>% 
+      flextable()
+province_dth
+```
+
+
+```{r}
+pop_data <- cov %>% 
+    group_by(gender, age_group) %>% 
+    summarise(counts=n()) %>% 
+    mutate(
+    percent  = round(100*(counts / sum(counts, na.rm=T)),1),  # % of total
+    percent  = case_when(                                                        
+     gender == "F" ~ percent,
+     gender == "M" ~ -percent,               # if male, convert % to negative
+     TRUE          ~ NA_real_))
+
+case_data <- dth %>% 
+    group_by(sex, age_group) %>% 
+    mutate(sex = recode(sex, "жена" = 'F', "мъж" = 'M')) %>% 
+    summarise(counts=n()) %>% 
+    mutate(
+    percent  = round(100*(counts / sum(counts, na.rm=T)),1),  # % of total
+    percent  = case_when(                                                        
+      sex == "F" ~ percent,
+     sex == "M" ~ -percent,               # if male, convert % to negative
+     TRUE          ~ NA_real_)) %>% 
+  rename(gender = sex)
+```
+
+```{r}
+# combine case and population data (same column names, age_cat values, and gender values)
+pyramid_data <- bind_rows("cases" = case_data, "population" = pop_data, .id = "data_source")
+# Define extent of percent axis, used for plot limits
+max_per <- max(pyramid_data$percent, na.rm=T)
+min_per <- min(pyramid_data$percent, na.rm=T)
+```
+
+```{r}
+age_levels <- c("0-14","15-24","25-34","35-44","45-54","55-64",
+                         "65-74","75-84","85-94","> 95")
+```
+
+```{r}
+# begin ggplot
+##############
+ggplot()+  # default x-axis is age in years;
+
+  # population data graph
+  geom_col(
+    data = pyramid_data %>% filter(data_source == "population"),
+    mapping = aes(
+      x = age_group,
+      y = percent,
+      fill = gender),
+    colour = "black",                               # black color around bars
+    alpha = 0.2,                                    # more transparent
+    width = 1)+                                     # full width
+  
+  # case data graph
+  geom_col(
+    data = pyramid_data %>% filter(data_source == "cases"), 
+    mapping = aes(
+      x = age_group,                               # age categories as original X axis
+      y = percent,                                # % as original Y-axis
+      fill = gender),                             # fill of bars by gender
+    colour = "black",                               # black color around bars
+    alpha = 1,                                      # not transparent 
+    width = 0.3)+                                   # half width
+  
+  # flip the X and Y axes to make pyramid vertical
+  coord_flip()+
+  
+  # manually ensure that age-axis is ordered correctly
+  scale_x_discrete(limits = age_levels)+     # defined in chunk above
+  
+  # set percent-axis 
+  scale_y_continuous(
+    limits = c(min_per, max_per),                                          # min and max defined above
+    breaks = seq(floor(min_per), ceiling(max_per), by = 2),                # from min% to max% by 2 
+    labels = paste0(                                                       # for the labels, paste together... 
+              abs(seq(floor(min_per), ceiling(max_per), by = 2)), "%"))+                                                  
+
+  # designate colors and legend labels manually
+  scale_fill_manual(
+    values = c("F" = "pink",         # assign colors to values in the data
+               "M" = "darkblue"),
+    labels = c("F" = "Жени",
+               "M"= "Мъже"),      # change labels that appear in legend, note order
+  ) +
+
+  # plot labels, titles, caption    
+  labs(
+    title = "Възрастова и полова структура на починалите спрямо инфектираните",
+    subtitle = "",
+    x = "Група",
+    y = "%",
+    fill = NULL,
+    caption = stringr::str_glue("Данните за починалите включват периода \nот: {format(min(dth$add_day, na.rm=T), '%d %b %Y')} до {format(max(dth$add_day, na.rm=T), '%d %b %Y')}")) +
+  
+  # optional aesthetic themes
+  theme(
+    legend.position = "bottom",                             # move legend to bottom
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black"),
+    plot.title = element_text(hjust = 0), 
+    plot.caption = element_text(hjust=0, size=11, face = "italic"))
+```
+
+# разпределение спрямо място на изолация/лечение (на домашно лечение,  в ковид отделение, в интензивно отдление) : todo
+
+
+# ваксинационен статус в групата на оставените на домашно лечение,  в ковид отделение, в интензивно отдление: todo
+
+
+# изход (оздравели  или починали с/от ковид)   в болница(ковид отделенеи или интензивно отделение) или в дома  todo 
 
 
