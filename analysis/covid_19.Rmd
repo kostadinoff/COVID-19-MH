@@ -21,6 +21,7 @@ library(janitor)
 library(flextable)
 library(apyramid)
 library(rstatix)
+library(gtsummary)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
@@ -163,6 +164,7 @@ age_gender = cov %>%                          # case linelist
 ```
 
 В групата на починалите има аналогична тенденция с изместване на 2 декади в смъртността. При женския под най-висок относителен дял на починали са наблюдават в диапазона 75-84 (34,6%), докато при мъжете с най-висок относителен дял са тези починали на възраст в диапозна декада по-рано 65-74 (33,9%)
+
 ```{r}
 age_gender_dth = dth %>%                          # case linelist
   tabyl(age_group, sex) %>%                # cross-tabulate counts
@@ -174,12 +176,13 @@ age_gender_dth = dth %>%                          # case linelist
 age_gender_dth
 ```
 
+
 ```{r echo=FALSE}
 piramid = apyramid::age_pyramid(data = cov,
                       age_group = "age_group",
                       split_by = "gender",
                       proportional = TRUE)
-piramid = piramid 
+piramid 
 ```
 
 ```{r echo=FALSE}
@@ -302,102 +305,118 @@ bi_plot = ggplot()+  # default x-axis is age in years;
 bi_plot
 ```
 
+## Разпределение по област:
 
-```{r province_inf}
-province = cov %>% 
-      tabyl(province) %>%       # tabulate counts and proportions by age category
-      adorn_pct_formatting() %>% 
-      flextable()
-province
-```
+По отношение на областта, очаквано спрямо данните от НСИ за разпределението на населението по области най-висок относителен дял се наблюдава в област София (столица) - 25,4% регистрирани, следвани от област Пловдив 9% и област Варна 8,4%. По отношение на починалите се запазва най-високия относителен дял на област София (столица) с  12,8 %, следвана от област Пловдив 9,3%. Най-високо съотношение на леталитета (починали сред инфектирани) по области се наблюдава за Разград 6,10 %, а най-нисък за област София (столица) 1,6%. 
 
-```{r province_dth}
+/// TODO карта на леталитета 
+```{r province_inf, echo=FALSE}
+province_inf = cov %>% 
+      freq_table(province) %>% 
+      mutate(region=province,
+             n_infected = n,
+             prop_infected=prop) %>% 
+      select(region, n_infected, prop_infected)
 province_dth = dth %>% 
-      tabyl(nuts2) %>%       # tabulate counts and proportions by age category
-      adorn_pct_formatting() %>% 
-      flextable()
-province_dth
+      freq_table(nuts2) %>% 
+      mutate(region = nuts2,
+             n_death = n,
+             prop_death = prop) %>% 
+      select(region, n_death, prop_death)
+province = province_inf %>% 
+  inner_join(province_dth) %>% 
+  mutate(ratio = (n_death/n_infected)*100) %>% 
+  flextable()
+province  
 ```
 
-# разпределение спрямо място на изолация/лечение (на домашно лечение, в ковид отделение, в интензивно отдление) :
+## Разпределение според хоспитализация: 
+Сред регистрираните пациенти, данни за хоспитализация е налична при 22% от случаите. Установена е асоциация между възрастовата група и съотношението на хоспитализираните пациенти. Най-висок относителен дял на хоспитализирани се установява във възрастовата група 75-84г. 
 
-```{r}
+```{r place, echo=FALSE}
 place = cov %>% 
       mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
-      tabyl(hospital_treat) %>%       # tabulate counts and proportions by age category
-      adorn_pct_formatting() %>% 
+      freq_table(age_group,hospital_treat) %>% 
       flextable()
 place
 ```
 
-# ваксинационен статус в групата на оставените на домашно лечение, в ковид отделение, в интензивно отдление:
+Прави впечатление, че с намаляването на възрастовата група, намалява и относителния дял на хоспитализираните с изключение на детската възраст от 0 до 14 г, който е с 5,1 процентни пункта по-висок спрямо този на възрастовата група 15-24г. Хоспитализацията при мъжете (24,1%) се установява статистически по-висока спрямо тази при жените (20.1%)
 
-```{r}
+```{r place_2, echo=FALSE}
+place_2 = cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      freq_table(gender,hospital_treat) %>% 
+      flextable()
+place_2
+```
+
+По области най-висок относителен дял на хоспитализирани се установява в Разград 40,1% и област Смолян 40,9 %
+
+//TODO: Карта с хоспитализирани по области
+//TODO piechart по пол/област и хоспитализация 
+```{r place_3, echo=FALSE}
+
+place_3 = cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+      freq_table(province,hospital_treat) %>% 
+      flextable()
+place_3
+```
+
+## Разпределение по ваксинационен статус
+### Поне една поставена доза
+
+С поне една поставена доза са 26,6 % от всички регистрирани. При хоспитализираните с поне една доза са 17,6 %, което е с 5,9 процентни пунтка по-малко спрямо групата на неваксинираните (хоспитализация при 23,5%) 
+
+```{r vax_1, echo=FALSE}
 vax_status_1 = cov %>% 
       mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
       mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
-       tabyl( hospital_treat,vax_status) %>%                  # cross-tabulate counts
-       adorn_totals(where = "row") %>%             # add a total row
-       adorn_percentages(denominator = "col") %>%  # convert to proportions
-       adorn_pct_formatting() %>%                  # convert to percents
-       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       freq_table(vax_status,hospital_treat) %>% 
        flextable()
 vax_status_1
 ```
 
-```{r}
+С 1,1 процентни пунта ваксинацията е застъпена в по-голяма степен при инфектираните мъже (27,2%). Сред всички инфектирани спрямо ваксинационния статус преобладават неваксинираните жени (73,9%)
+
+```{r vax_2, echo=FALSE}
 vax_status_2 = cov %>% 
       mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
       mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
-       tabyl(vax_status,hospital_treat) %>%                  # cross-tabulate counts
-       adorn_totals(where = "row") %>%             # add a total row
-       adorn_percentages(denominator = "col") %>%  # convert to proportions
-       adorn_pct_formatting() %>%                  # convert to percents
-       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       freq_table(gender,vax_status) %>% 
        flextable()
 vax_status_2
 ```
 
-# изход (оздравели или починали с/от ковид) в болница (ковид отделенеи или интензивно отделение) или в дома todo
-
-```{r}
-exit_1= cov %>% 
-      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
+Сред инфектираните, най-висок относителен дял на неваксинирани се установява в област Монтана 83,7% и област Смолян 82,8%. 
+```{r vax_3, echo=FALSE}
+vax_status_3 = cov %>% 
       mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
-      mutate(death = if_else(is.na(outcome_covid), "Recovered", "Death")) %>% 
-       tabyl( hospital_treat,death) %>%                  # cross-tabulate counts
-       adorn_totals(where = "row") %>%             # add a total row
-       adorn_percentages(denominator = "col") %>%  # convert to proportions
-       adorn_pct_formatting() %>%                  # convert to percents
-       adorn_ns(position = "front") %>%            # display as: "count (percent)"
+       freq_table(province,vax_status) %>% 
        flextable()
-exit_1
+vax_status_3
 ```
 
-```{r}
-exit_2= cov %>% 
-      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
-      mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
-      mutate(death = if_else(is.na(outcome_covid), "Recovered", "Death")) %>% 
-       tabyl(death,hospital_treat) %>%                  # cross-tabulate counts
-       adorn_totals(where = "row") %>%             # add a total row
-       adorn_percentages(denominator = "col") %>%  # convert to proportions
-       adorn_pct_formatting() %>%                  # convert to percents
-       adorn_ns(position = "front") %>%            # display as: "count (percent)"
-       flextable()
-exit_2
+## Двумерно разпределние спрямо ваксинационен статус (поне една доза) и изход от инфекцията
+
+Установява се асоциация между ваксинационния статус и изхода при инфектираните. Въпреки, че медианата на възрастта в групата на ваксинираните е с 3.9 години по-висока от тази на неваксинираните, починалите в тази група са с 20 % по-малко спрямо неваксинираните. Разликата между медианата на възрастта в двете групи на починали и възстановени е 25 години. 
+
+```{r vax_death, echo=FALSE}
+exit_1 <- cov %>% 
+      mutate(hospital_treat = if_else(is.na(start_hospis), 0, 1)) %>% 
+      mutate(vaccinated = if_else(is.na(vaccine_name), 0, 1)) %>% 
+      mutate(death = if_else(is.na(outcome_covid), "Recovery", "Death")) %>%
+      mutate(male = ifelse(gender == "F" ,0,1)) %>% 
+     select(vaccinated,hospital_treat,male,death,age) %>% 
+tbl_summary(
+            by = death, # split table by group
+            missing = "no" ) %>%
+            add_n() %>% # add column with total number of non-missing observations
+            add_difference() %>% 
+            as_flex_table()
 ```
 
-```{r}
-exit_vax= cov %>% 
-      mutate(hospital_treat = if_else(is.na(start_hospis), "Home", "Hospital")) %>% 
-      mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>%
-      mutate(death = if_else(is.na(outcome_covid), "Recovered", "Death")) %>% 
-       tabyl(vax_status,death) %>%                  # cross-tabulate counts
-       adorn_totals(where = "row") %>%             # add a total row
-       adorn_percentages(denominator = "col") %>%  # convert to proportions
-       adorn_pct_formatting() %>%                  # convert to percents
-       adorn_ns(position = "front") %>%            # display as: "count (percent)"
-       flextable()
-exit_vax
-```
+
+
+
