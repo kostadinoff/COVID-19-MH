@@ -152,7 +152,7 @@ age_summ
 При двумерно разпределение по възраст и пол сред инфектираните се установява по-висок относителен дял на инфектираните мъже в диапазона 35-44 год., докато при женсия пол най-представена е групата на инфектирани в диапазона 45-54г. 
 
 
-```{r}
+```{r sex_age, echo=FALSE}
 age_gender = cov %>%                          # case linelist
   tabyl(age_group, gender) %>%                # cross-tabulate counts
   adorn_totals(where = "row") %>%             # add a total row
@@ -165,7 +165,7 @@ age_gender = cov %>%                          # case linelist
 
 В групата на починалите има аналогична тенденция с изместване на 2 декади в смъртността. При женския под най-висок относителен дял на починали са наблюдават в диапазона 75-84 (34,6%), докато при мъжете с най-висок относителен дял са тези починали на възраст в диапозна декада по-рано 65-74 (33,9%)
 
-```{r}
+```{r sex_age_dth, echo=FALSE}
 age_gender_dth = dth %>%                          # case linelist
   tabyl(age_group, sex) %>%                # cross-tabulate counts
   adorn_totals(where = "row") %>%             # add a total row
@@ -415,6 +415,7 @@ tbl_summary(
             add_n() %>% # add column with total number of non-missing observations
             add_difference() %>% 
             as_flex_table()
+exit_1 
 ```
 
 
