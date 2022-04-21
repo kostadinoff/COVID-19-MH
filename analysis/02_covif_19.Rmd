@@ -1,0 +1,241 @@
+---
+title: "Анализ на регистрираните COVID-19 случаи"
+author: "Кеворкян К., Райчева Р.Костадинов К."
+date: "24/03/2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r pakeges, include=FALSE}
+library(tidyverse)
+library(easystats)
+library(tayloRswift)
+library(readr)
+library(officer)
+library(janitor)
+library(flextable)
+library(apyramid)
+library(rstatix)
+library(gtsummary)
+library(arsenal)
+library(gt)
+Sys.setlocale(locale = "Bulgarian")
+```
+
+# Сравнителен анализ на оздравели и починали. 
+В предоставената информационна база за периода са налични данни за 247 441 хоспитализиции. Общо хоспитализираните са 22% от всички регистрирани инфектирани. По-висок относителен дял на хоспитализираните се наблюдава при мъжете 50,7% спрямо жените 49,3%. По отношение на възрастовото разпределение : средната възраст при нехоспитализираните е 43,9 (SD = 18.0), докато при приетите в болница 62,2 (SD = 16.9), като разликата във възрастта е статистически знаима p<0.001)
+
+```{r read_data, include=FALSE}
+cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv", 
+    col_types = cols(exam_date = col_date(format = "%d.%m.%Y"), 
+         lastvac_date = col_date(format = "%d.%m.%Y"), 
+         start_hospis = col_date(format = "%d.%m.%Y"), 
+         end_hospis = col_date(format = "%d.%m.%Y")))
+cov = as_tibble(cov)
+
+dth <- read_csv("https://raw.githubusercontent.com/kostadinoff/COVID-19-MH/master/data/COVID_MH_data/deaths.csv", col_types = cols(add_day = col_date(format = "%Y-%m-%d"), 
+    death_day = col_date(format = "%Y-%m-%d")))
+dth = as_tibble(dth)
+```
+
+```{r data_prepare, include=FALSE}
+cov = cov %>% 
+  mutate(status = if_else(is.na(outcome_covid), "R", "D")) %>% 
+  mutate(hospital_treat = ifelse(is.na(start_hospis), "Home", "Hospital")) %>% 
+  mutate(wave = case_when(exam_date <='2021-07-07'~ "alpha",
+                          exam_date > '2021-07-07' & exam_date <= '2022-01-26' ~ "delta",
+                          exam_date > '2022-01-26'~ "omicron")) %>% 
+  mutate(time_to_event = case_when(hospital_treat == "Hospital" ~difftime(start_hospis, exam_date, units = "days"),
+                                       
+                                   hospital_treat == "Home" ~ 0)) %>%
+  mutate(time_in_hospital = case_when(hospital_treat == "Hospital" ~difftime(end_hospis, start_hospis, units = "days"),
+                                       
+                                   hospital_treat == "Home" ~ 0)) %>%
+  mutate(time_to_event = as.numeric(time_to_event)) %>% 
+  mutate(time_in_hospital = as.numeric(time_in_hospital)) %>% 
+  mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax"))
+  
+cov$time_to_event <- replace(cov$time_to_event, cov$time_to_event <= 0, NA)                    
+cov$time_in_hospital <- replace(cov$time_in_hospital, cov$time_in_hospital <= 0, NA) 
+cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
+                       c("0-14","15-24","25-34","35-44","45-54","55-64",
+                         "65-74","75-84","85-94","> 95"), include.lowest=TRUE)
+
+```
+
+Наблюдава се и статистически значима асоциация между вариантите (определени по датата с съобщени от НЦЗПЗ над 50% преобладаващ вариант) и относителният дял на хоспитализираните, като за началото на пандемията и преобладаващият алфа вариант са хоспитализирани над 50% от всички хоспитализации за периода. Редно е да се отбележи, че това от части се дължи на задължителното изолиране в болница, а не само поради състояние налагащо това.
+```{r wave_as, echo=FALSE}
+hospitalis = cov %>% 
+  select(wave, hospital_treat) %>% 
+  tbl_summary(
+            by = hospital_treat, # split table by group
+            missing = "no" ) %>%
+            add_n() %>% # add column with total number of non-missing observations
+            add_p() %>% 
+            as_flex_table()
+ 
+hospitalis  
+```
+
+Различна е ситуацията по отношение на смъртността. В периода на разпространение на делта варианта се наблюдава и най-високият дял на починалите - 62% от всички включени в базата данни. 
+
+```{r wave_dh, echo=FALSE}
+dth_prop = 
+  cov %>% 
+  mutate(status = ifelse(status == "R","Recovery","Death")) %>% 
+  select(wave, status) %>% 
+  tbl_summary(
+            by = status, # split table by group
+            missing = "no" ) %>%
+            add_n() %>% # add column with total number of non-missing observations
+            add_p() %>% 
+            as_flex_table()
+ 
+dth_prop 
+```
+
+По отношение на разпределение по области се наблюдава статистическа значима асоцация между областта и относителния дял на хоспитализираните, като най-висок се наблюдава в област Смолян (40,9%), а най-нисък в област София (столица) 12,6 %
+```{r province_hospital, echo=FALSE}
+tab1 = cov %>% 
+  tabyl(province, hospital_treat) %>% 
+  select(-1) %>% 
+  chisq_test()
+
+province_hosp = 
+  cov %>% 
+  freq_table(province, hospital_treat) %>% 
+  flextable()
+province_hosp
+```
+
+Наблюдава се и значително по-висок леталитет от делта вариант (нестандартизиран 4,24%) в сравнение с алфа (нестандартизиран 2,18%) и омикрон (нестандартизиран 1,66%) 
+
+```{r letalitet_wave, echo=FALSE}
+letalitet_wave = 
+  cov %>% 
+  group_by(wave,status) %>% 
+  summarise(n =n()) %>% 
+  pivot_wider(names_from = status, values_from = n) %>% 
+  mutate(letalitet = (D/R)*100) %>% 
+  flextable()
+letalitet_wave
+```
+
+
+
+```{r}
+gender_hospital = cov %>% 
+  select(gender, hospital_treat) %>% 
+  tbl_summary(
+            by = hospital_treat, # split table by group
+            missing = "no" ) %>%
+            add_n() %>% 
+            add_difference() %>% # add column with total number of non-missing observations
+            add_p() %>% 
+            as_flex_table()
+gender_hospital 
+```
+
+```{r}
+
+gender_status = cov %>% 
+  select(gender, status) %>% 
+  tbl_summary(
+            by = status, # split table by group
+            missing = "no" ) %>%
+            add_n() %>% 
+            add_difference() %>% # add column with total number of non-missing observations
+            add_p() %>% 
+            as_flex_table()
+gender_status 
+```
+
+```{r}
+status_age_cat = cov %>% 
+  select(age_group, status) %>% 
+  tbl_summary(
+            by = status, # split table by group
+            missing = "no" ) %>%
+            add_n() %>%  # add column with total number of non-missing observations
+            add_p() %>% 
+            as_flex_table()
+status_age_cat
+```
+
+```{r timing_days, echo=FALSE}
+timing = cov %>% 
+  filter(hospital_treat == "Hospital") %>% 
+  select(status,time_to_event, time_in_hospital) %>% 
+  tbl_summary(by = status, 
+              missing="no") %>% 
+  add_p()
+timing
+```
+
+
+```{r}
+vax_status = cov %>% 
+  mutate(vaccinated = if_else(is.na(vaccine_name), 0, 1)) %>% 
+  select(vaccinated, status) %>% 
+  tbl_summary(by = status, # split table by group
+             statistic = list(
+        all_continuous() ~ "{mean} ({sd})",
+        all_dichotomous() ~ "{p}%"),
+    missing = "no") %>%
+  add_n() %>% # add column with total number of non-missing observations
+            add_difference() %>% 
+            as_flex_table()
+vax_status
+
+```
+
+```{r}
+vax_status_real = cov %>% 
+  filter(exam_date >'2021-01-01') %>% 
+  mutate(vaccinated = if_else(is.na(vaccine_name), 0, 1)) %>% 
+  select(vaccinated, status) %>% 
+  tbl_summary(by = status, # split table by group
+             statistic = list(all_dichotomous() ~ "{p}%"),
+            missing = "no") %>%
+  add_n() %>% # add column with total number of non-missing observations
+            add_difference() %>% 
+            as_flex_table()
+vax_status_real
+  
+```
+
+```{r}
+
+vax_status_full = cov %>% 
+  filter(exam_date >'2021-03-01') %>% 
+  select(status,is_f_vac) %>% 
+  tbl_summary(by = status, # split table by group
+             statistic = list(all_dichotomous() ~ "{p}%"),
+             missing = "no") %>%
+  add_n() %>% # add column with total number of non-missing observations
+            add_difference() %>% 
+            as_flex_table()
+vax_status_full
+```
+
+```{r}
+
+
+reg <- glm(status ~ is_f_vac, data=cov, family=binomial)
+
+tab2 = cov %>% 
+  filter(exam_date >'2021-03-01') %>% 
+  select(province,status,is_f_vac) %>%
+  group_by(province) %>% 
+  tabyl(province,status,is_f_vac) %>% 
+  chisq_test()
+
+```
+
+
+
