@@ -126,17 +126,33 @@ letalitet_wave =
 letalitet_wave
 ```
 
+```{r}
+smyrtnost_delta = 
+  cov %>% 
+  mutate(delta = ifelse(wave=="delta","Delta","Others")) %>% 
+  mutate(death = ifelse(status == "D",1,0)) %>% 
+  select(death, delta) %>% 
+  tbl_summary(
+            by = delta, # split table by group
+            missing = "no" ) %>%
+            add_n() %>% 
+            add_difference() %>% 
+  as_flex_table()
+
+smyrtnost_delta
+```
 
 
 ```{r}
 gender_hospital = cov %>% 
   select(gender, hospital_treat) %>% 
+  mutate(male = if_else(gender == "M", 1, 0)) %>% 
+  select(-gender) %>% 
   tbl_summary(
             by = hospital_treat, # split table by group
             missing = "no" ) %>%
             add_n() %>% 
             add_difference() %>% # add column with total number of non-missing observations
-            add_p() %>% 
             as_flex_table()
 gender_hospital 
 ```
@@ -144,15 +160,16 @@ gender_hospital
 ```{r}
 
 gender_status = cov %>% 
-  select(gender, status) %>% 
+  mutate(male = if_else(gender == "M", 1, 0)) %>% 
+  select(male, status) %>% 
   tbl_summary(
             by = status, # split table by group
             missing = "no" ) %>%
-            add_n() %>% 
-            add_difference() %>% # add column with total number of non-missing observations
-            add_p() %>% 
+            add_n() %>% # add column with total number of non-missing observations
+            add_difference() %>% 
             as_flex_table()
-gender_status 
+
+gender_status
 ```
 
 ```{r}
@@ -173,7 +190,8 @@ timing = cov %>%
   select(status,time_to_event, time_in_hospital) %>% 
   tbl_summary(by = status, 
               missing="no") %>% 
-  add_p()
+  add_p() %>% 
+  as_flex_table()
 timing
 ```
 
@@ -225,17 +243,14 @@ vax_status_full
 
 ```{r}
 
-
-reg <- glm(status ~ is_f_vac, data=cov, family=binomial)
-
-tab2 = cov %>% 
-  filter(exam_date >'2021-03-01') %>% 
-  select(province,status,is_f_vac) %>%
-  group_by(province) %>% 
-  tabyl(province,status,is_f_vac) %>% 
-  chisq_test()
+cov_r = cov %>% 
+  mutate(death = ifelse(status == "D", 1, 0)) %>% 
+  select(death, province, is_f_vac)
+reg <- glm(death ~ is_f_vac+province, data=cov_r, family=binomial)
 
 ```
+
+
 
 
 

@@ -83,17 +83,22 @@ drop municipality
 drop gender
 drop province
 drop status
-drop vaccine_name
 
-gen recoverd = "recovered" if outcome_covid == ""
-replace recoverd = "" in 1
-replace recoverd = "death" if missing( recoverd )
-graph pie, over(sex) by(recoverd)
+
+gen death = 1
+replace death = 0 if outcome_covid == ""
+
+gen vacinated = 1
+replace vacinated = 0 if vaccine_name == ""
+
+replace vax_name = 0  if vaccine_name == ""
+
+
 
 recode age (min/14 = 0 "0-14")(15/24= 1 "15-24")(25/34=2 "25-34")(35/44=3 "35-44")(45/54=4 "45-54")(55/64=5 "55-64")(65/74=6 "65-74")(75/84=7 "75-84")(85/94=8 "85-94")(95/max = 9 "95 +" ), generate(agecat)
 
 
-
+ssc install coefplot, replace
 
 
 
