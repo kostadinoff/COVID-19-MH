@@ -102,10 +102,12 @@ ssc install coefplot, replace
 
 logistic death i.vacinated age i.sex
 margins i.sex,  dydx(vacinated) at(age=(20(5)85)) vsquish
-
-gen wave = "alpha"
-replace wave = "delta" if exam_dat > "07jul2021"
-replace wave = "alpha" if exam_dat > "26jan2022"
+marginsplot, recast(line) recastci(rarea)
+gen wav = "alpha"
+replace wav = "delta" if exam_dat > td(07jul2021)
+replace wav = "omicron" if exam_dat > td(26jan2022) 
+encode wav, gen (wave)
+drop wav
 
 
 
