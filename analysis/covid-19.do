@@ -89,8 +89,8 @@ gen death = 1
 replace death = 0 if outcome_covid == ""
 
 gen vacinated = 1
-replace vacinated = 0 if vaccine_name == ""
-
+replace vacinated = 0 if vaccine_name == "" 
+replace vacinated = 0 if lastvac_dat > exam_dat
 replace vax_name = 0  if vaccine_name == ""
 
 
@@ -99,6 +99,14 @@ recode age (min/14 = 0 "0-14")(15/24= 1 "15-24")(25/34=2 "25-34")(35/44=3 "35-44
 
 
 ssc install coefplot, replace
+
+logistic death i.vacinated age i.sex
+margins i.sex,  dydx(vacinated) at(age=(20(5)85)) vsquish
+
+gen wave = "alpha"
+replace wave = "delta" if exam_dat > "07jul2021"
+replace wave = "alpha" if exam_dat > "26jan2022"
+
 
 
 

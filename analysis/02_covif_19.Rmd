@@ -11,6 +11,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+library(fifer)
+
 ```{r pakeges, include=FALSE}
 library(tidyverse)
 library(easystats)
@@ -24,11 +26,14 @@ library(rstatix)
 library(gtsummary)
 library(arsenal)
 library(gt)
+library(emmeans)
+library(chisq.posthoc.test)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
-# Сравнителен анализ на оздравели и починали. 
-В предоставената информационна база за периода са налични данни за 247 441 хоспитализиции. Общо хоспитализираните са 22% от всички регистрирани инфектирани. По-висок относителен дял на хоспитализираните се наблюдава при мъжете 50,7% спрямо жените 49,3%. По отношение на възрастовото разпределение : средната възраст при нехоспитализираните е 43,9 (SD = 18.0), докато при приетите в болница 62,2 (SD = 16.9), като разликата във възрастта е статистически знаима p<0.001)
+# Сравнителен анализ на оздравели и починали.
+
+В предоставената информационна база за периода са налични данни за 247 441 хоспитализиции. Общо хоспитализираните са 22% от всички регистрирани инфектирани. По-висок относителен дял на хоспитализираните се наблюдава при мъжете 50,7% спрямо жените 49,3%. По отношение на възрастовото разпределение : средната възраст при нехоспитализираните е 43,9 (SD = 18.0), докато при приетите в болница 62,2 (SD = 16.9), като разликата във възрастта е статистически значчма p\<0.001)
 
 ```{r read_data, include=FALSE}
 cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv", 
@@ -58,7 +63,10 @@ cov = cov %>%
                                    hospital_treat == "Home" ~ 0)) %>%
   mutate(time_to_event = as.numeric(time_to_event)) %>% 
   mutate(time_in_hospital = as.numeric(time_in_hospital)) %>% 
-  mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax"))
+  mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>% 
+  mutate(vac_status = case_when(vax_status == "Vax" & lastvac_date < exam_date ~ "Vax",
+                                TRUE ~ "No_vax")) %>% 
+  dplyr::select(-vax_status)
   
 cov$time_to_event <- replace(cov$time_to_event, cov$time_to_event <= 0, NA)                    
 cov$time_in_hospital <- replace(cov$time_in_hospital, cov$time_in_hospital <= 0, NA) 
@@ -68,42 +76,86 @@ cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf),
 
 ```
 
-Наблюдава се и статистически значима асоциация между вариантите (определени по датата с съобщени от НЦЗПЗ над 50% преобладаващ вариант) и относителният дял на хоспитализираните, като за началото на пандемията и преобладаващият алфа вариант са хоспитализирани над 50% от всички хоспитализации за периода. Редно е да се отбележи, че това от части се дължи на задължителното изолиране в болница, а не само поради състояние налагащо това.
-```{r wave_as, echo=FALSE}
-hospitalis = cov %>% 
-  select(wave, hospital_treat) %>% 
+Наблюдава се и статистически значима асоциация между вариантите (определени по датата с съобщени от НЦЗПЗ (с над 50% преобладаващ вариант) и относителният дял на хоспитализираните, като за началото на пандемията и преобладаващият алфа вариант са реализирани над 50% от всички хоспитализации за периода. Разгледано само за вариат алфа относителният дял на хоспитализираните е 30%, който статистически значимо по-висок от този при вариант делта (19%) и вариант омиктон (12%). Редно е да се отбележи, че това от части се дължи на задължителното изолиране в болница, а не само поради състояние налагащо това.
+
+Наблюдава се и статистически значима разлика в възрастовата структура на инфектираните. При вариант алфа средната възраст на инфектираните е 51 г. с 6 години по-голяма от тези при вариант делта и омикрон. (? вероятно заради селективното тестване в периода). Само за групата на възстановените, средната възраст в периода на алфа варианта (51) е с 6,5 години по-висока от тази при делта варинат (х= 44,48, 95%CI 6.32-6.51, p\<0.001) и с 5 години по-висока от тази в периода на вариант омикрон (х= 45,91, 95%CI 4.79-5.03, p\<0.001).
+
+Различна е ситуацията по отношение на смъртността. В периода на разпространение на делта варианта се наблюдава и най-високият дял на починалите - 62% от всички починали в предоставените данни. Това определя и периода, с най-висок леталитет (4,1%), което е с 2% по-висок от този при алфа варианта и 2,5% по висок от варианта омикрон.
+
+```{r}
+hospitalis_all = cov %>% 
+  dplyr::select(vac_status,status,wave,gender, age, hospital_treat) %>% 
+  mutate(male = ifelse(gender=="M",1,0)) %>% 
+  mutate(hospitalized = ifelse(hospital_treat=="Hospital",1,0)) %>% 
+  mutate(vacinated = ifelse(vac_status =="Vax",1,0)) %>% 
+  mutate(case_fatality = ifelse(status == "R",0,1)) %>% 
+  dplyr::select(age,wave,male,hospitalized,vacinated,case_fatality ) %>% 
   tbl_summary(
-            by = hospital_treat, # split table by group
-            missing = "no" ) %>%
-            add_n() %>% # add column with total number of non-missing observations
-            add_p() %>% 
-            as_flex_table()
- 
-hospitalis  
+    by = wave,
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} / {N} ({p}%)")) %>% 
+  add_p() %>% 
+  as_flex_table()
+  
+hospitalis
 ```
 
-Различна е ситуацията по отношение на смъртността. В периода на разпространение на делта варианта се наблюдава и най-високият дял на починалите - 62% от всички включени в базата данни. 
-
-```{r wave_dh, echo=FALSE}
-dth_prop = 
-  cov %>% 
-  mutate(status = ifelse(status == "R","Recovery","Death")) %>% 
-  select(wave, status) %>% 
+```{r}
+hospitalis_D = cov %>%
+  filter(status== "D") %>% 
+  dplyr::select(vac_status,wave,gender, age, hospital_treat) %>% 
+  mutate(male = ifelse(gender=="M",1,0)) %>% 
+  mutate(hospitalized = ifelse(hospital_treat=="Hospital",1,0)) %>% 
+  mutate(vacinated = ifelse(vac_status =="Vax",1,0)) %>% 
+  dplyr::select(age,wave,male,hospitalized,vacinated) %>% 
   tbl_summary(
-            by = status, # split table by group
-            missing = "no" ) %>%
-            add_n() %>% # add column with total number of non-missing observations
-            add_p() %>% 
-            as_flex_table()
- 
-dth_prop 
+    by = wave,
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} / {N} ({p}%)")) %>% 
+  add_p() %>% 
+  as_flex_table()
+  
+hospitalis_D
+```
+
+```{r}
+hospitalis_R = cov %>%
+  filter(status== "R") %>% 
+  dplyr::select(vac_status,wave,gender, age, hospital_treat) %>% 
+  mutate(male = ifelse(gender=="M",1,0)) %>% 
+  mutate(hospitalized = ifelse(hospital_treat=="Hospital",1,0)) %>% 
+  mutate(vacinated = ifelse(vac_status =="Vax",1,0)) %>% 
+  dplyr::select(age,wave,male,hospitalized,vacinated) %>% 
+  tbl_summary(
+    by = wave,
+    statistic = list(all_continuous() ~ "{mean} ({sd})",
+                     all_categorical() ~ "{n} / {N} ({p}%)")) %>% 
+  add_p() %>% 
+  as_flex_table()
+  
+hospitalis_R
+```
+
+
+Не се наблюдава статистически значима разлика във възрастта при починалите по време на алфа и делта вариант (p = 0,988), омикрон се характеризира с по-висока средна възраст сред групата на починалите (x = 75,5 +/-10,8) (? еми хем е по-малко летален хем и ваксини има все пак). По отношение на половото съотношение: за групата на починалите най-ниско полово съотношение мъже:жени (1.06) се установява при делта варианта, докато алфа и омикрон се характеризират със статистически значимо по-висок афинитет към мъжкия пол (полово съотношение за алфа вариант: 1,32 и за омикрон: 1,31)
+
+```{r}
+table_wave_age= 
+  cov %>% 
+  dplyr::select(age,status,wave) %>% 
+  group_by(wave,status) %>% 
+  get_summary_stats(type = "common") %>% 
+  flextable()
+table_wave_age 
+  
 ```
 
 По отношение на разпределение по области се наблюдава статистическа значима асоцация между областта и относителния дял на хоспитализираните, като най-висок се наблюдава в област Смолян (40,9%), а най-нисък в област София (столица) 12,6 %
+
 ```{r province_hospital, echo=FALSE}
 tab1 = cov %>% 
   tabyl(province, hospital_treat) %>% 
-  select(-1) %>% 
+  dplyr:::select(-1) %>% 
   chisq_test()
 
 province_hosp = 
@@ -113,7 +165,7 @@ province_hosp =
 province_hosp
 ```
 
-Наблюдава се и значително по-висок леталитет от делта вариант (нестандартизиран 4,24%) в сравнение с алфа (нестандартизиран 2,18%) и омикрон (нестандартизиран 1,66%) 
+Наблюдава се и значително по-висок леталитет от делта вариант (нестандартизиран 4,24%) в сравнение с алфа (нестандартизиран 2,18%) и омикрон (нестандартизиран 1,66%)
 
 ```{r letalitet_wave, echo=FALSE}
 letalitet_wave = 
@@ -141,7 +193,6 @@ smyrtnost_delta =
 
 smyrtnost_delta
 ```
-
 
 ```{r}
 gender_hospital = cov %>% 
@@ -194,7 +245,6 @@ timing = cov %>%
   as_flex_table()
 timing
 ```
-
 
 ```{r}
 vax_status = cov %>% 
@@ -249,8 +299,3 @@ cov_r = cov %>%
 reg <- glm(death ~ is_f_vac+province, data=cov_r, family=binomial)
 
 ```
-
-
-
-
-
