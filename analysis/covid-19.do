@@ -100,8 +100,6 @@ recode age (min/14 = 0 "0-14")(15/24= 1 "15-24")(25/34=2 "25-34")(35/44=3 "35-44
 
 
 ssc install coefplot, replace
-ssc install staft
-
 
 *logistic death i.vacinated age i.sex
 *margins i.sex,  dydx(vacinated) at(age=(20(5)85)) vsquish
@@ -112,15 +110,15 @@ replace wav = "omicron" if exam_dat > td(26jan2022)
 encode wav, gen (wave)
 drop wav
 
-gen time_outcome = ((14 + exam_dat) - exam_dat)/7
-replace time_outcome = (end_hospital - exam_dat)/7 if hospitalized == 1
+gen time_outcome = (14 + exam_dat) - exam_dat
+replace time_outcome = end_hospital - exam_dat if hospitalized == 1
 gen time_vacinated =  exam_dat-lastvac_dat  if vacinated == 1
 
 keep if time_outcome >= 0
 
 stset time_outcome, failure(death==1)
 sts test vacinated , logrank
-stcurve, survival at1(vacinated=0) at2(vacinated=1) 
+stcurve, survival at1(vacinated=0) at2(vacinated=1) risktable
 
 
 
