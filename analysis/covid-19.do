@@ -93,25 +93,34 @@ replace vacinated = 0 if vaccine_name == ""
 replace vacinated = 0 if lastvac_dat > exam_dat
 replace vax_name = 0  if vaccine_name == ""
 
-
+gen hospitalized = 1
+replace hospitalized = 0 if hospital_name == ""
 
 recode age (min/14 = 0 "0-14")(15/24= 1 "15-24")(25/34=2 "25-34")(35/44=3 "35-44")(45/54=4 "45-54")(55/64=5 "55-64")(65/74=6 "65-74")(75/84=7 "75-84")(85/94=8 "85-94")(95/max = 9 "95 +" ), generate(agecat)
 
 
 ssc install coefplot, replace
+ssc install staft
 
-logistic death i.vacinated age i.sex
-margins i.sex,  dydx(vacinated) at(age=(20(5)85)) vsquish
-marginsplot, recast(line) recastci(rarea)
+
+*logistic death i.vacinated age i.sex
+*margins i.sex,  dydx(vacinated) at(age=(20(5)85)) vsquish
+*marginsplot, recast(line) recastci(rarea)
 gen wav = "alpha"
 replace wav = "delta" if exam_dat > td(07jul2021)
 replace wav = "omicron" if exam_dat > td(26jan2022) 
 encode wav, gen (wave)
 drop wav
 
+gen time_outcome = ((14 + exam_dat) - exam_dat)/7
+replace time_outcome = (end_hospital - exam_dat)/7 if hospitalized == 1
+gen time_vacinated =  exam_dat-lastvac_dat  if vacinated == 1
 
+keep if time_outcome >= 0
 
-
+stset time_outcome, failure(death==1)
+sts test vacinated , logrank
+stcurve, survival at1(vacinated=0) at2(vacinated=1) 
 
 
 
