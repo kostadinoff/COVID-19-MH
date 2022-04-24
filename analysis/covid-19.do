@@ -99,7 +99,7 @@ replace hospitalized = 0 if hospital_name == ""
 recode age (min/14 = 0 "0-14")(15/24= 1 "15-24")(25/34=2 "25-34")(35/44=3 "35-44")(45/54=4 "45-54")(55/64=5 "55-64")(65/74=6 "65-74")(75/84=7 "75-84")(85/94=8 "85-94")(95/max = 9 "95 +" ), generate(agecat)
 
 
-ssc install coefplot, replace
+*ssc install coefplot, replace
 
 *logistic death i.vacinated age i.sex
 *margins i.sex,  dydx(vacinated) at(age=(20(5)85)) vsquish
