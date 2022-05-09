@@ -1,0 +1,96 @@
+---
+title: "Анализ на регистрираните COVID-19 случаи"
+author: "Кеворкян К., Райчева Р.Костадинов К."
+date: "24/03/2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r pakeges, include=FALSE}
+library(tidyverse)
+library(easystats)
+library(tayloRswift)
+library(readr)
+library(officer)
+library(janitor)
+library(flextable)
+library(apyramid)
+library(rstatix)
+library(gtsummary)
+library(arsenal)
+library(gt)
+library(emmeans)
+library(chisq.posthoc.test)
+Sys.setlocale(locale = "Bulgarian")
+```
+
+
+
+```{r read_data, include=FALSE}
+cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv", 
+    col_types = cols(exam_date = col_date(format = "%d.%m.%Y"), 
+         lastvac_date = col_date(format = "%d.%m.%Y"), 
+         start_hospis = col_date(format = "%d.%m.%Y"), 
+         end_hospis = col_date(format = "%d.%m.%Y")))
+cov = as_tibble(cov)
+```
+
+```{r data_prepare, include=FALSE}
+cov = cov %>% 
+  mutate(status = if_else(is.na(outcome_covid), "R", "D")) %>% 
+  mutate(hospital_treat = ifelse(is.na(start_hospis), "Home", "Hospital")) %>% 
+  mutate(wave = case_when(exam_date <='2021-07-07'~ "alpha",
+                          exam_date > '2021-07-07' & exam_date <= '2022-01-26' ~ "delta",
+                          exam_date > '2022-01-26'~ "omicron")) %>% 
+  mutate(time_test_hospital = case_when(hospital_treat == "Hospital" ~difftime(start_hospis, exam_date, units = "days"),
+                                       
+                                   hospital_treat == "Home" ~ 0)) %>%
+  mutate(time_in_hospital = case_when(hospital_treat == "Hospital" ~difftime(end_hospis, start_hospis, units = "days"),
+                                       
+                                   hospital_treat == "Home" ~ 0)) %>%
+  mutate(time_test_hospital = as.numeric(time_test_hospital)) %>% 
+  mutate(time_in_hospital = as.numeric(time_in_hospital)) %>% 
+  mutate(vax_status = if_else(is.na(vaccine_name), "No_vax", "Vax")) %>% 
+  mutate(vac_status = case_when(vax_status == "Vax" & lastvac_date < exam_date ~ "Vax",
+                                TRUE ~ "No_vax")) %>% 
+  dplyr::select(-vax_status) %>% 
+  mutate(time_after_vax = case_when(vac_status == "Vax" ~ difftime(exam_date,lastvac_date, units = "days"),
+                                       
+                                   vac_status == "No_vax"  ~ 0)) %>% 
+  mutate(time_after_vax = as.numeric(time_after_vax)) %>% 
+  mutate(month = format(exam_date, "%m"), year = format(exam_date, "%Y")) 
+```
+
+
+```{r data_prepare, include=FALSE}
+cov$time_to_event <- replace(cov$time_to_event, cov$time_to_event <= 0 & cov$hospital_treat == "Home" , NA)      
+cov$time_to_event <- replace(cov$time_to_event, cov$time_to_event < 0, NA) 
+cov$time_after_vax <- replace(cov$time_after_vax, cov$time_after_vax < 0, NA)      
+cov$time_in_hospital <- replace(cov$time_in_hospital, cov$time_in_hospital <= 0, NA) 
+cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
+                       c("0-14","15-24","25-34","35-44","45-54","55-64",
+                         "65-74","75-84","85-94","> 95"), include.lowest=TRUE)
+
+```
+
+```{r}
+rhi = read_csv("data/RHI_Data_HR/rhi_m.csv",
+    col_types = cols(date = col_date(format = "%d/%m/%Y")))
+rhi = rhi %>% 
+  as_tibble() %>% 
+  mutate(month = format(date, "%m"), year = format(date, "%Y")) %>% 
+  rename( province = region )
+```
+
+```{r}
+cov = cov %>% 
+  left_join(rhi)
+cov
+```
+
