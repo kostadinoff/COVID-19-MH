@@ -79,8 +79,8 @@ cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf),
 
 ```
 
-```{r}
-rhi = read_csv("data/RHI_Data_HR/rhi_m.csv",
+```{r read_data, include=FALSE}
+rhi = read_csv("C:\\\\Users\\PC\\Desktop\\rhi_m.csv",
     col_types = cols(date = col_date(format = "%d/%m/%Y")))
 rhi = rhi %>% 
   as_tibble() %>% 
@@ -88,9 +88,90 @@ rhi = rhi %>%
   rename( province = region )
 ```
 
-```{r}
-cov = cov %>% 
-  left_join(rhi)
-cov
+```{r read_data, include=FALSE}
+
+rhi_due = read_csv("C:\\\\Users\\PC\\Desktop\\rhi_y.csv",
+   col_types = cols(year = col_character()))
 ```
+
+```{r read_data, include=FALSE}
+population = read_csv("C:\\\\Users\\PC\\Desktop\\population.csv")
+population = population %>% 
+  rename("2022" = "av_p") %>% 
+  pivot_longer(cols = 3:5, names_to = "year", values_to = "population") %>% 
+  rename(province = region)
+```
+
+```{r read_data, include=FALSE}
+cov_pivot = cov %>% 
+  group_by(province, month, year) %>% 
+  summarise(n = n())
+```
+
+```{r read_data, include=FALSE}
+jt = cov_pivot %>% 
+  left_join(population) %>% 
+  left_join(rhi_due)
+```
+
+```{r read_data, include=FALSE}
+cov  = cov %>% 
+  left_join(jt)
+```
+
+```{r read_data, include=FALSE}
+doses_dates <- read_csv("C:/Users/PC/Desktop/doses_dates.csv", 
+     col_types = cols(date = col_datetime(format = "%d/%m/%Y %H:%M"), 
+         ...3 = col_skip()))
+doses_dates = doses_dates %>% 
+  mutate(month = format(date, "%m"), year = format(date, "%Y")) %>% 
+  rename(province = region) %>% 
+  select(-date)
+```
+
+```{r read_data, include=FALSE}
+doses_types <- read_csv("C:/Users/PC/Desktop/doses_types.csv")
+```
+
+
+```{r read_data, include=FALSE}
+cov_j = cov %>% 
+  group_by(province, month, year, status) %>% 
+  summarise(n= n()) %>% 
+  pivot_wider(names_from = status, values_from = n) %>% 
+  mutate_if(is.integer, ~replace(., is.na(.), 0)) %>% 
+  mutate(case_fatality = (D / (D+R)*100)) %>% 
+  left_join(doses_dates) %>% 
+  select(-c(R, D)) %>% 
+  mutate(doses = if_else(is.na(doses), 0, doses)) %>% 
+  left_join(population) %>% 
+  select(-region_id) %>% 
+  mutate(doses_per_capita = (doses/population)*100) %>% 
+  select(-c(population, doses)) %>% 
+  select(case_fatality, doses_per_capita)
+```
+
+```{r read_data, include=FALSE}
+cov_j %>% 
+  group_by(province) %>% 
+  summarise(case_fatality = mean(case_fatality),
+            doses_per_capita = mean(doses_per_capita)) %>% 
+  ungroup() %>% 
+  select(case_fatality, doses_per_capita) %>% 
+  correlation()
+```
+
+# Общо поставени васкини (брой и вид поставени ваксини; във времето по вид ваксина; по области, по места на посатвяне на ваксината/пунтове за поставяне)
+
+```{r}
+doses_dates
+```
+
+
+
+
+
+Има ли зависмост между области с висока заболяемсот и имунизационния обхват?
+Има ли зависмост между областите с висока смъртност/леталите и имунизационния обхват?
+
 
