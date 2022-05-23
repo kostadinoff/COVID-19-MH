@@ -23,10 +23,6 @@ library(flextable)
 library(apyramid)
 library(rstatix)
 library(gtsummary)
-library(arsenal)
-library(gt)
-library(emmeans)
-library(chisq.posthoc.test)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
@@ -163,9 +159,26 @@ cov_j %>%
 
 # Общо поставени васкини (брой и вид поставени ваксини; във времето по вид ваксина; по области, по места на посатвяне на ваксината/пунтове за поставяне)
 
-```{r}
-doses_dates
+```{r read_data, include=FALSE}
+doses_shots <- read_csv("C:/Users/PC/Desktop/doses_shots.csv",
+         col_types = cols(...2 = col_skip())) %>% 
+  pivot_longer(col = 2:12, names_to = "type", values_to = "n")
+
 ```
+
+В предоставената информация по отношение на васинациите се установява общ брой поставени ваксини от: 4331511. 
+```{r}
+doses_dates$date <- zoo::as.yearmon(paste(doses_dates$year, doses_dates$month), "%Y %m")
+
+table_1 = doses_dates %>% 
+  group_by(province, date) %>% 
+  summarise(vac = sum(doses)) 
+
+
+  freq_table(province, date)
+```
+
+
 
 
 
