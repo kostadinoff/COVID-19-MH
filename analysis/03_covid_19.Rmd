@@ -171,8 +171,9 @@ doses_shots <- read_csv("C:/Users/PC/Desktop/doses_shots.csv",
 doses_dates$date <- zoo::as.yearmon(paste(doses_dates$year, doses_dates$month), "%Y %m")
 
 table_1 = doses_dates %>% 
-  group_by(province, date) %>% 
-  summarise(vac = sum(doses)) 
+  group_by(province) %>% 
+  summarise(vac = sum(doses)) %>% 
+  ungroup()
 
 
   freq_table(province, date)
