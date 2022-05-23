@@ -23,6 +23,7 @@ library(flextable)
 library(apyramid)
 library(rstatix)
 library(gtsummary)
+library(hrbrthemes)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
@@ -85,7 +86,6 @@ rhi = rhi %>%
 ```
 
 ```{r read_data, include=FALSE}
-
 rhi_due = read_csv("C:\\\\Users\\PC\\Desktop\\rhi_y.csv",
    col_types = cols(year = col_character()))
 ```
@@ -126,7 +126,8 @@ doses_dates = doses_dates %>%
 ```
 
 ```{r read_data, include=FALSE}
-doses_types <- read_csv("C:/Users/PC/Desktop/doses_types.csv")
+doses_types <- read.csv("C:/Users/PC/Desktop/doses_types.csv", encoding="UTF-8", stringsAsFactors=TRUE)
+doses_types = as_tibble(doses_types)
 ```
 
 
@@ -157,7 +158,8 @@ cov_j %>%
   correlation()
 ```
 
-# Общо поставени васкини (брой и вид поставени ваксини; във времето по вид ваксина; по области, по места на посатвяне на ваксината/пунтове за поставяне)
+# Общо поставени васкини (брой и вид поставени ваксини; във времето по 
+вид ваксина; по области, по места на поставяне на ваксината/пунтове за поставяне)
 
 ```{r read_data, include=FALSE}
 doses_shots <- read_csv("C:/Users/PC/Desktop/doses_shots.csv",
@@ -166,21 +168,92 @@ doses_shots <- read_csv("C:/Users/PC/Desktop/doses_shots.csv",
 
 ```
 
-В предоставената информация по отношение на васинациите се установява общ брой поставени ваксини от: 4331511. 
-```{r}
-doses_dates$date <- zoo::as.yearmon(paste(doses_dates$year, doses_dates$month), "%Y %m")
+В предоставената информация по отношение на ваксинациите се установява 
+общ брой поставени ваксини от: 4331511. При разглеждане на процентното разпределение
+по време на поставяне на дозите се очертават 2 своеобразни "пика" във ваксинацията. 
+Първия през месец април на 2021г (през който са поставени над 12% от всички дози)
+Вторият пик на ваксинацията е през месеците октомври - декември на същата година. 
+С началото на 2022 г. се наблюдава и сериозен спад във имунизационната кампания, 
+като средно за страната в този период са поставени едва под 2% от всички дози. 
+```{r echo=FALSE}
+doses_dates = doses_dates %>% 
+  mutate(day = "01")
+doses_dates$date<-as.Date(with(doses_dates,paste(year,month,day,sep="-")),
+                          "%Y-%m-%d")
+doses_dates$date <- ymd(doses_dates$date)
 
-table_1 = doses_dates %>% 
+  figure_1 = doses_dates %>% 
   group_by(province) %>% 
-  summarise(vac = sum(doses)) %>% 
-  ungroup()
+  select(-c(month, year,day)) %>% 
+  mutate(freq = round(doses / sum(doses), 3)) %>% 
+  group_by(date) %>% 
+  summarise(freq = mean(freq)) %>% 
+  ggplot( aes(x=date, y=freq, fill = date)) +
+  geom_col() +
+  theme_minimal()+
+  theme(text = element_text(size = 16)) +
+  theme(legend.position = "none")+
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_date(date_labels = "%B",date_breaks  ="1 month")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1))+
+  labs(title = "Процент на поставени ваксини по месеци",
+       y = "% от всички дози", x= "")
+  
+  figure_1
+```
+Не се наблюдават съществени различия по отношение на процентното съотношение на
+поставените дози по месеци. 
 
+```{r echo=FALSE}
+  table_1 = doses_dates %>% 
+  group_by(province) %>% 
+  mutate(freq_proc = round((doses / sum(doses)*100), 3)) %>% 
+  select(-c(day, date))%>% 
+  flextable()
+table_1
+```
 
-  freq_table(province, date)
+По отношение на местата на поставяне:
+Най-висок процент от поставените ваксини са поставени в лечебни заведения за
+Първична извънболнична медицинска помощ (37%), следвани от лечебни заведения за
+болнична медицинска помощ с поставени близо 33% от всички дози. В категория други
+(null) - в т.ч специално разкрити пунктове са поставени 13,2 % от всички дози. 
+
+```{r echo=FALSE}
+table_2 =
+  doses_types %>% 
+  group_by(type) %>% 
+  summarise(doses= sum(doses)) %>% 
+  mutate(freq_proc = round((doses / sum(doses)*100), 3)) %>% 
+  flextable()
+table_2
 ```
 
 
+По отношение на разделението по области в област София - столица са потребени 
+26.2 % от всички дози за страната в разглеждания период. Дори при разглеждането
+на ваксинационото покритие като реализирани дози на 100 души население (което е
+методологично неправилно) в софия (столица) отново се наблюдава най-високо съотношение
+със средно 86.19545 дози на 100 жители. 
 
+
+```{r echo=FALSE}
+
+population_tb3 = population %>% 
+  filter(year == "2022") %>% 
+  select(-c(year, region_id)) %>% 
+  rename(region = province)
+table_3 =
+  doses_types %>% 
+  group_by(region) %>% 
+  summarise(doses= sum(doses)) %>% 
+  mutate(freq_proc = round((doses / sum(doses)*100), 3)) %>% 
+  left_join(population_tb3) %>% 
+  mutate(vac_rate_per_100 = (doses/population)*100)%>% 
+  select(-c(population, doses)) %>% 
+  flextable()
+table_3
+```
 
 
 
