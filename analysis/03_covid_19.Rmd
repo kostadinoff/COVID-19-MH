@@ -29,7 +29,7 @@ Sys.setlocale(locale = "Bulgarian")
 
 
 
-```{r read_data, include=FALSE}
+```{r include=FALSE}
 cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv", 
     col_types = cols(exam_date = col_date(format = "%d.%m.%Y"), 
          lastvac_date = col_date(format = "%d.%m.%Y"), 
@@ -38,7 +38,7 @@ cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv",
 cov = as_tibble(cov)
 ```
 
-```{r data_prepare, include=FALSE}
+```{r  include=FALSE}
 cov = cov %>% 
   mutate(status = if_else(is.na(outcome_covid), "R", "D")) %>% 
   mutate(hospital_treat = ifelse(is.na(start_hospis), "Home", "Hospital")) %>% 
@@ -65,18 +65,14 @@ cov = cov %>%
 ```
 
 
-```{r data_prepare, include=FALSE}
-cov$time_to_event <- replace(cov$time_to_event, cov$time_to_event <= 0 & cov$hospital_treat == "Home" , NA)      
-cov$time_to_event <- replace(cov$time_to_event, cov$time_to_event < 0, NA) 
-cov$time_after_vax <- replace(cov$time_after_vax, cov$time_after_vax < 0, NA)      
-cov$time_in_hospital <- replace(cov$time_in_hospital, cov$time_in_hospital <= 0, NA) 
+```{r include=FALSE}
 cov["age_group"] = cut(cov$age, c(0, 14, 24,34, 44, 54, 64, 74, 84, 94, Inf), 
                        c("0-14","15-24","25-34","35-44","45-54","55-64",
                          "65-74","75-84","85-94","> 95"), include.lowest=TRUE)
 
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 rhi = read_csv("C:\\\\Users\\PC\\Desktop\\rhi_m.csv",
     col_types = cols(date = col_date(format = "%d/%m/%Y")))
 rhi = rhi %>% 
@@ -85,12 +81,12 @@ rhi = rhi %>%
   rename( province = region )
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 rhi_due = read_csv("C:\\\\Users\\PC\\Desktop\\rhi_y.csv",
    col_types = cols(year = col_character()))
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 population = read_csv("C:\\\\Users\\PC\\Desktop\\population.csv")
 population = population %>% 
   rename("2022" = "av_p") %>% 
@@ -98,24 +94,24 @@ population = population %>%
   rename(province = region)
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 cov_pivot = cov %>% 
   group_by(province, month, year) %>% 
   summarise(n = n())
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 jt = cov_pivot %>% 
   left_join(population) %>% 
   left_join(rhi_due)
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 cov  = cov %>% 
   left_join(jt)
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 doses_dates <- read_csv("C:/Users/PC/Desktop/doses_dates.csv", 
      col_types = cols(date = col_datetime(format = "%d/%m/%Y %H:%M"), 
          ...3 = col_skip()))
@@ -125,13 +121,13 @@ doses_dates = doses_dates %>%
   select(-date)
 ```
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 doses_types <- read.csv("C:/Users/PC/Desktop/doses_types.csv", encoding="UTF-8", stringsAsFactors=TRUE)
 doses_types = as_tibble(doses_types)
 ```
 
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 cov_j = cov %>% 
   group_by(province, month, year, status) %>% 
   summarise(n= n()) %>% 
@@ -153,7 +149,7 @@ cov_j = cov %>%
 # Общо поставени васкини (брой и вид поставени ваксини; във времето по 
 вид ваксина; по области, по места на поставяне на ваксината/пунтове за поставяне)
 
-```{r read_data, include=FALSE}
+```{r  include=FALSE}
 doses_shots <- read.csv("C:/Users/PC/Desktop/doses_shots.csv", encoding="UTF-8", stringsAsFactors=TRUE)
 doses_shots = as_tibble(doses_shots) %>% 
   select(-X) %>% 
@@ -172,11 +168,11 @@ doses_shots = as_tibble(doses_shots) %>%
 като средно за страната в този период са поставени едва под 2% от всички дози. 
 
 ```{r echo=FALSE}
-doses_dates = doses_dates %>% 
+  doses_dates = doses_dates %>% 
   mutate(day = "01")
 doses_dates$date<-as.Date(with(doses_dates,paste(year,month,day,sep="-")),
                           "%Y-%m-%d")
-doses_dates$date <- ymd(doses_dates$date)
+doses_dates$date <- lubridate::ymd(doses_dates$date)
 
   figure_1 = doses_dates %>% 
   group_by(province) %>% 
@@ -205,7 +201,9 @@ doses_dates$date <- ymd(doses_dates$date)
   table_1 = doses_dates %>% 
   group_by(province) %>% 
   mutate(freq_proc = round((doses / sum(doses)*100), 3)) %>% 
-  select(-c(day, date))%>% 
+  select(-c(day, date, doses))%>% 
+  pivot_wider(names_from =c(month, year), values_from = 	
+freq_proc) %>% 
   flextable()
 table_1
 ```
@@ -259,7 +257,8 @@ table_3
 Наблюдава се умерена, отрицателна статистически значима корелация между броя на поставените дози на 100/население и леталитета от ковид-19 (r = -0.52, p<0.05). 
 
 ```{r  echo=FALSE}
-cov_j %>% 
+cov_j = 
+  cov_j %>% 
   group_by(province) %>% 
   summarise(case_fatality = mean(case_fatality),
             doses_per_capita = mean(doses_per_capita)) %>% 
@@ -322,7 +321,9 @@ table_5
 table_6 = doses_shots %>% 
   group_by(province,vac_type) %>% 
   summarise(doses = sum(n)) %>% 
-  mutate(freq = doses/ sum(doses)) %>% 
+  mutate(freq_proc = (doses/ sum(doses))*100) %>% 
+  select(-doses) %>% 
+  pivot_wider(names_from = "vac_type", values_from = freq_proc) %>% 
   flextable()
 table_6
 ```
@@ -363,7 +364,9 @@ table_9 = doses_shots %>%
   filter(regime == "booster") %>% 
   group_by(province,vac_type) %>% 
   summarise(doses = sum(n)) %>% 
-  mutate(freq = doses/ sum(doses)) %>% 
+  mutate(freq_proc = (doses/ sum(doses))*100) %>% 
+  select(-doses) %>% 
+  pivot_wider(names_from = vac_type, values_from = freq_proc) %>% 
   flextable()
 table_9
 ```
@@ -536,25 +539,75 @@ table_21
 
 по региони,  
 
+Най-висок леталитет сред ваксинирани се наблюдава в област Разград 33,3 промила. Най-нисък в област София (столица) 9,7 промила 
+
 ```{r echo=FALSE}
   table_22 = cov %>% 
-  filter(status == "D" & vac_status =="Vax") %>% 
-  group_by(province) %>% 
+  filter(vac_status =="Vax") %>% 
+  group_by(province, status) %>% 
   summarise(n = n()) %>% 
-  left_join(population_tb3) %>% 
-  mutate(case_fatality_per_10000 = (n/population)*10000) %>% 
-  select(-c(n, population)) %>% 
+  pivot_wider(names_from = "status", values_from = "n") %>% 
+  mutate(case_fatality = D/(D+R)*1000) %>% 
+  select(-c(D,R)) %>% 
   flextable()
 table_22
 ```
 
-
-по вид ваксина; 
-
-
-
-
 ## починали неваксинирани- разпределение по пол, по възрастови групи, по региони;  
 
+разпределение по пол
+
+Пол пол неваксинираните починали мъже са 52,5%, докато жените 47,5%
+```{r echo=FALSE}
+table_23 = cov %>% 
+  filter(status == "D" & vac_status =="No_vax") %>%  
+  freq_table(gender) %>% 
+  flextable()
+table_23
+```
 
 
+по възрастови групи
+
+При неваксинираните починали в най-голяма степен отново са представени пациенти в диапазона 75-84 години, представляващи 33,5% от всички неваксинирани починали
+
+```{r echo=FALSE}
+table_24 = cov %>% 
+  filter(status == "D" & vac_status =="No_vax") %>% 
+  freq_table(age_group) %>% 
+  flextable()
+table_24
+```
+
+
+по региони,  
+
+Най-висок леталитет сред неваксинирани се наблюдава в област Разград 51.19 промила. Най-нисък в област София (столица) 18.65 промила 
+
+```{r echo=FALSE}
+  table_25 = cov %>% 
+  filter(vac_status =="No_vax") %>% 
+  group_by(province, status) %>% 
+  summarise(n = n()) %>% 
+  pivot_wider(names_from = "status", values_from = "n") %>% 
+  mutate(case_fatality = D/(D+R)*1000) %>% 
+  select(-c(D,R)) %>% 
+  flextable()
+table_25
+```
+
+
+# Леталитет по вълни и по области
+
+```{r echo=FALSE}
+  table_26 = cov %>% 
+  group_by(province, wave, status) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = "status", values_from = "n") %>% 
+  mutate(case_fatality = D/(D+R)*1000) %>% 
+  select(-c(D,R)) %>% 
+  pivot_wider(names_from = wave, values_from = case_fatality) %>% 
+  flextable()
+table_26
+  
+```
