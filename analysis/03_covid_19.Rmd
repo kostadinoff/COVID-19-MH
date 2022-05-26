@@ -611,3 +611,85 @@ table_25
 table_26
   
 ```
+
+```{r}
+one = doses_types %>% 
+  group_by(region,type) %>% 
+  summarise(doses= sum(doses)) %>% 
+  mutate(freq_proc = round((doses / sum(doses)*100), 3)) %>% 
+  select(-doses) %>% 
+  pivot_wider(names_from = type, values_from = freq_proc) %>% 
+  rename(partnori_vac = `Special partner`,
+         mdc_v = `Медико-дентален център`,
+         pimp = `Първична извънболнична медицинска помощ`,
+         simp = `Специализирана извънболнична медицинска помощ`,
+         med_lab_v= `Медицински лаборатории`,
+         med_cen_v = `Медицински центрове`)
+
+two = doses_shots %>% 
+  filter(type == "Janssen_first" |type == "AZ_sec" |type =="Moderna_sec" |type == "Comirnaty_sec" ) %>% 
+  group_by(province) %>% 
+  select(-c(type,regime,vac_type)) %>% 
+  summarise(fully_vacinated = sum(n)) %>% 
+  rename(region = province)
+
+three = doses_shots %>% 
+  group_by(province,vac_type) %>% 
+  summarise(doses = sum(n)) %>% 
+  pivot_wider(names_from = vac_type, values_from = doses) %>% 
+  rename(region = province)
+
+four = rhi %>% 
+  group_by(province) %>% 
+  summarise(hospital_beds = median(hospital_beds, na.rm = T),
+            COVID_Beds = median(COVID_Beds,na.rm = T),
+            Intensive_COVID_beds = median(Intensive_COVID_beds, na.rm = T),
+            ID_Beds = median(ID_Beds,na.rm = T)) %>% 
+  rename(region = province)
+
+five = rhi_due %>% 
+  filter(year == 2020) %>% 
+  select(-c(region_id, year))
+
+six = cov %>% 
+  group_by(province, status) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = status, values_from = n) %>% 
+  rename(region = province)
+
+seven = cov %>% 
+  group_by(province, vac_status) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = vac_status, values_from = n) %>% 
+  rename(region = province)
+
+eight = cov %>% 
+  group_by(province, wave) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = wave, values_from = n) %>% 
+  rename(region = province)
+
+nine = cov %>% 
+  filter(hospital_treat=="Hospital") %>% 
+  group_by(province) %>% 
+  summarise(median_hospital_time = median(time_in_hospital, na.rm = T)) %>% 
+  rename(region = province)
+  
+  
+all =   one %>% 
+  left_join(two) %>% 
+  left_join(three) %>% 
+  left_join(four) %>% 
+  left_join(five) %>% 
+  left_join(six) %>% 
+  left_join(seven) %>% 
+  left_join(eight) %>% 
+  left_join(nine) %>% 
+  rename(NUTS_NAME = region)
+  
+
+library(foreign)
+write.dta(all, "all_regions.dta")
+  
+```
+

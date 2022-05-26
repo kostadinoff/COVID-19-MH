@@ -23,7 +23,18 @@ save ./documents/rhi_full.dta, replace
 * мърджане с това което искаме да плотнем 
 merge 1:1 NUTS_NAME using "C:\Users\Kostadin\Documents\bulgaria_regions_NUTS_3\rhi_full.dta"
 
+
 *плотваме 
 spmap covid_proportion using bulgaria_shp, id(_ID) cln(11) fcolor(Heat)
 
+
+
+use "C:\Users\PC\Documents\GitHub\COVID-19-MH\data\COVID_MH_data\all_regions.dta"
+
+
+* мърджане с това което искаме да плотнем 
+merge 1:1 NUTS_NAME using"C:\Users\PC\Documents\GitHub\COVID-19-MH\data\COVID_MH_data\all_regions.dta"
+
+gen alpha_per_1000 = (alpha/ Pop_2019)*1000
+spmap  alpha_per_1000 using bulgaria_shp, id(_ID) cln(7) fcolor(Heat)
 
