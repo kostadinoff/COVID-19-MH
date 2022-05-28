@@ -1,3 +1,5 @@
+
+///////////////////////////////////////////////////////////////////////////////
 *** за графики *******
 *формиране на дати
 import delimited "https://raw.githubusercontent.com/kostadinoff/COVID-19-MH/master/data/COVID_MH_data/national_stata_data.csv"
@@ -40,6 +42,8 @@ tsegen double vax_14 = rowmean(L(0/13).vaccinated )
 tsegen double death_vaccinated_14 = rowmean(L(0/13).death_vaccinated ) 
 tsegen double death_non_vax_14 = rowmean(L(0/13).death_non_vax) 
 
+
+///////////////////////////////////////////////////////////////////////////////
 ******** Индивидуални данни ***********************
 * Графични пакети
 //ssc install tsegen
@@ -113,6 +117,11 @@ drop wav
 gen time_outcome = (14 + exam_dat) - exam_dat
 replace time_outcome = end_hospital - exam_dat if hospitalized == 1
 gen time_vacinated =  exam_dat-lastvac_dat  if vacinated == 1
+
+
+logistic hospitalized age sex
+logistic death age sex i.region
+
 
 keep if time_outcome >= 0
 
