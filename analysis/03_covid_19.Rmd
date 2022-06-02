@@ -546,7 +546,7 @@ table_21
   group_by(province, status) %>% 
   summarise(n = n()) %>% 
   pivot_wider(names_from = "status", values_from = "n") %>% 
-  mutate(case_fatality = D/(D+R)*1000) %>% 
+  mutate(case_fatality = D/(D+R)*100) %>% 
   select(-c(D,R)) %>% 
   flextable()
 table_22
@@ -589,7 +589,7 @@ table_24
   group_by(province, status) %>% 
   summarise(n = n()) %>% 
   pivot_wider(names_from = "status", values_from = "n") %>% 
-  mutate(case_fatality = D/(D+R)*1000) %>% 
+  mutate(case_fatality = D/(D+R)*100) %>% 
   select(-c(D,R)) %>% 
   flextable()
 table_25
@@ -603,7 +603,7 @@ table_25
   group_by(province, wave, status) %>% 
   summarise(n=n()) %>% 
   pivot_wider(names_from = "status", values_from = "n") %>% 
-  mutate(case_fatality = D/(D+R)*1000) %>% 
+  mutate(case_fatality = D/(D+R)*100) %>% 
   select(-c(D,R)) %>% 
   pivot_wider(names_from = wave, values_from = case_fatality) %>% 
   flextable()
