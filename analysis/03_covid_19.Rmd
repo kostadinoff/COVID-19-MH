@@ -27,8 +27,6 @@ library(hrbrthemes)
 Sys.setlocale(locale = "Bulgarian")
 ```
 
-
-
 ```{r include=FALSE}
 cov = read_csv("C:\\\\Users\\PC\\Desktop\\covid_full.csv", 
     col_types = cols(exam_date = col_date(format = "%d.%m.%Y"), 
@@ -42,7 +40,8 @@ cov = as_tibble(cov)
 cov = cov %>% 
   mutate(status = if_else(is.na(outcome_covid), "R", "D")) %>% 
   mutate(hospital_treat = ifelse(is.na(start_hospis), "Home", "Hospital")) %>% 
-  mutate(wave = case_when(exam_date <='2021-07-07'~ "alpha",
+ mutate(wave = case_when(exam_date <='2021-01-23'~ "original_strain",
+                          exam_date > '2021-01-23' & exam_date <= '2021-07-07' ~ "alpha",
                           exam_date > '2021-07-07' & exam_date <= '2022-01-26' ~ "delta",
                           exam_date > '2022-01-26'~ "omicron")) %>% 
   mutate(time_test_hospital = case_when(hospital_treat == "Hospital" ~difftime(start_hospis, exam_date, units = "days"),
@@ -612,7 +611,7 @@ table_26
   
 ```
 
-```{r}
+```{r include=FALSE}
 one = doses_types %>% 
   group_by(region,type) %>% 
   summarise(doses= sum(doses)) %>% 
